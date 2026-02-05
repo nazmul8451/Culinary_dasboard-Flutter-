@@ -55,7 +55,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         backgroundColor: Colors.white,
         elevation: 1,
         title: Text(
-          'Culinary Admin Dashboard',
+          'Admin Dashboard',
           style: GoogleFonts.inter(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
