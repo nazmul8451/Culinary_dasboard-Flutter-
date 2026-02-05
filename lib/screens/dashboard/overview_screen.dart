@@ -13,136 +13,161 @@ class OverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.paddingLG),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Page Title
-          Text(
-            'Dashboard Overview',
-            style: GoogleFonts.inter(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingSM),
-          Text(
-            'Welcome back! Here\'s what\'s happening with your platform.',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingXL),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
+        final isNarrow = screenWidth < 1100;
 
-          // Statistics Cards
-          FutureBuilder<Map<String, int>>(
-            future: UserService.getUserStatistics(),
-            builder: (context, snapshot) {
-              final stats =
-                  snapshot.data ??
-                  {'total': 0, 'buyers': 0, 'sellers': 0, 'couriers': 0};
+        // Dynamic crossAxisCount for statistics cards
+        final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
 
-              return GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: AppSizes.paddingMD,
-                mainAxisSpacing: AppSizes.paddingMD,
-                childAspectRatio: 1.5,
-                children: [
-                  StatCard(
-                    title: 'Total Users',
-                    value: stats['total'].toString(),
-                    icon: Icons.people,
-                    color: AppColors.primary,
-                    percentageChange: 12.5,
-                  ),
-                  StatCard(
-                    title: 'Buyers',
-                    value: stats['buyers'].toString(),
-                    icon: Icons.shopping_cart,
-                    color: AppColors.secondary,
-                  ),
-                  StatCard(
-                    title: 'Sellers',
-                    value: stats['sellers'].toString(),
-                    icon: Icons.store,
-                    color: AppColors.success,
-                  ),
-                  StatCard(
-                    title: 'Couriers',
-                    value: stats['couriers'].toString(),
-                    icon: Icons.delivery_dining,
-                    color: AppColors.warning,
-                  ),
-                ],
-              );
-            },
-          ),
+        // Adjust childAspectRatio based on columns
+        // Decreasing ratio makes cards taller to prevent overflow
+        final childAspectRatio = isMobile ? 2.0 : (isNarrow ? 1.4 : 1.3);
 
-          const SizedBox(height: AppSizes.paddingXL),
-
-          // Order Statistics
-          FutureBuilder<Map<String, dynamic>>(
-            future: OrderService.getOrderStatistics(),
-            builder: (context, snapshot) {
-              final stats =
-                  snapshot.data ??
-                  {'total': 0, 'pending': 0, 'onTheWay': 0, 'delivered': 0};
-
-              return GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: AppSizes.paddingMD,
-                mainAxisSpacing: AppSizes.paddingMD,
-                childAspectRatio: 1.5,
-                children: [
-                  StatCard(
-                    title: 'Total Orders',
-                    value: stats['total'].toString(),
-                    icon: Icons.shopping_bag,
-                    color: AppColors.primary,
-                    percentageChange: 8.3,
-                  ),
-                  StatCard(
-                    title: 'Pending',
-                    value: stats['pending'].toString(),
-                    icon: Icons.pending,
-                    color: AppColors.warning,
-                  ),
-                  StatCard(
-                    title: 'On The Way',
-                    value: stats['onTheWay'].toString(),
-                    icon: Icons.local_shipping,
-                    color: AppColors.info,
-                  ),
-                  StatCard(
-                    title: 'Delivered',
-                    value: stats['delivered'].toString(),
-                    icon: Icons.check_circle,
-                    color: AppColors.success,
-                  ),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: AppSizes.paddingXL),
-
-          // Recent Activity Section
-          Row(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSizes.paddingLG),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildRecentOrdersCard()),
-              const SizedBox(width: AppSizes.paddingMD),
-              Expanded(child: _buildPendingVerificationsCard()),
+              // Page Title
+              Text(
+                'Dashboard Overview',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingSM),
+              Text(
+                'Welcome back! Here\'s what\'s happening with your platform.',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 12 : 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // User Statistics Cards
+              FutureBuilder<Map<String, int>>(
+                future: UserService.getUserStatistics(),
+                builder: (context, snapshot) {
+                  final stats =
+                      snapshot.data ??
+                      {'total': 0, 'buyers': 0, 'sellers': 0, 'couriers': 0};
+
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: AppSizes.paddingMD,
+                    mainAxisSpacing: AppSizes.paddingMD,
+                    childAspectRatio: childAspectRatio,
+                    children: [
+                      StatCard(
+                        title: 'Total Users',
+                        value: stats['total'].toString(),
+                        icon: Icons.people,
+                        color: AppColors.primary,
+                        percentageChange: 12.5,
+                      ),
+                      StatCard(
+                        title: 'Buyers',
+                        value: stats['buyers'].toString(),
+                        icon: Icons.shopping_cart,
+                        color: AppColors.secondary,
+                      ),
+                      StatCard(
+                        title: 'Sellers',
+                        value: stats['sellers'].toString(),
+                        icon: Icons.store,
+                        color: AppColors.success,
+                      ),
+                      StatCard(
+                        title: 'Couriers',
+                        value: stats['couriers'].toString(),
+                        icon: Icons.delivery_dining,
+                        color: AppColors.warning,
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // Order Statistics
+              FutureBuilder<Map<String, dynamic>>(
+                future: OrderService.getOrderStatistics(),
+                builder: (context, snapshot) {
+                  final stats =
+                      snapshot.data ??
+                      {'total': 0, 'pending': 0, 'onTheWay': 0, 'delivered': 0};
+
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: AppSizes.paddingMD,
+                    mainAxisSpacing: AppSizes.paddingMD,
+                    childAspectRatio: childAspectRatio,
+                    children: [
+                      StatCard(
+                        title: 'Total Orders',
+                        value: stats['total'].toString(),
+                        icon: Icons.shopping_bag,
+                        color: AppColors.primary,
+                        percentageChange: 8.3,
+                      ),
+                      StatCard(
+                        title: 'Pending',
+                        value: stats['pending'].toString(),
+                        icon: Icons.pending,
+                        color: AppColors.warning,
+                      ),
+                      StatCard(
+                        title: 'On The Way',
+                        value: stats['onTheWay'].toString(),
+                        icon: Icons.local_shipping,
+                        color: AppColors.info,
+                      ),
+                      StatCard(
+                        title: 'Delivered',
+                        value: stats['delivered'].toString(),
+                        icon: Icons.check_circle,
+                        color: AppColors.success,
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // Recent Activity Section
+              if (isNarrow)
+                Column(
+                  children: [
+                    _buildRecentOrdersCard(),
+                    const SizedBox(height: AppSizes.paddingMD),
+                    _buildPendingVerificationsCard(),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildRecentOrdersCard()),
+                    const SizedBox(width: AppSizes.paddingMD),
+                    Expanded(child: _buildPendingVerificationsCard()),
+                  ],
+                ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

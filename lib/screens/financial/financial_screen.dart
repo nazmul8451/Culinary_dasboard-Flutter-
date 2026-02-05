@@ -12,125 +12,144 @@ class FinancialScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final isMediumScreen = MediaQuery.of(context).size.width < 900;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
+        final isNarrow = screenWidth < 1100;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(
-        isSmallScreen ? AppSizes.paddingMD : AppSizes.paddingLG,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          if (!isSmallScreen) ...[
-            Text(
-              'Financial Dashboard',
-              style: GoogleFonts.inter(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSM),
-            Text(
-              'Monitor earnings, escrow, and payouts',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingXL),
-          ],
+        // Dynamic crossAxisCount for revenue cards
+        final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
 
-          // Revenue Stats
-          FutureBuilder<Map<String, dynamic>>(
-            future: Future.wait([
-              OrderService.getOrderStatistics(),
-              SubscriptionService.getSubscriptionStats(),
-            ]).then((results) => {...results[0], ...results[1]}),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: LinearProgressIndicator());
-              }
-              final stats = snapshot.data ?? {};
-              return GridView.count(
-                crossAxisCount: isSmallScreen ? 1 : (isMediumScreen ? 2 : 4),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: AppSizes.paddingMD,
-                mainAxisSpacing: AppSizes.paddingMD,
-                childAspectRatio: isSmallScreen ? 2.5 : 1.5,
-                children: [
-                  StatCard(
-                    title: 'Released Revenue',
-                    value:
-                        '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
-                    icon: Icons.attach_money,
-                    color: AppColors.success,
-                    subtitle: 'Funds cleared',
-                  ),
-                  StatCard(
-                    title: 'Escrow Held',
-                    value: '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
-                    icon: Icons.account_balance_wallet,
-                    color: AppColors.warning,
-                    subtitle: 'Awaiting delivery',
-                  ),
-                  StatCard(
-                    title: 'Monthly Subs',
-                    value:
-                        '\$${(stats['monthlyRevenue'] ?? 0).toStringAsFixed(2)}',
-                    icon: Icons.card_membership,
-                    color: AppColors.primary,
-                    subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
-                  ),
-                  StatCard(
-                    title: 'Failed Payments',
-                    value: '${stats['failedCount'] ?? 0}',
-                    icon: Icons.warning_amber_rounded,
-                    color: AppColors.error,
-                    subtitle: 'Past Due Subs',
-                  ),
-                ],
-              );
-            },
+        // Adjust childAspectRatio based on columns
+        final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.4 : 1.3);
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
           ),
-
-          const SizedBox(height: AppSizes.paddingXL),
-
-          // Charts Row
-          if (isSmallScreen)
-            Column(
-              children: [
-                _buildRevenueChart(),
-                const SizedBox(height: AppSizes.paddingMD),
-                _buildEscrowCard(),
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 2, child: _buildRevenueChart()),
-                const SizedBox(width: AppSizes.paddingMD),
-                Expanded(child: _buildEscrowCard()),
-              ],
-            ),
-
-          const SizedBox(height: AppSizes.paddingXL),
-
-          // Payouts & Subscriptions Row
-          Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(flex: 1, child: _buildPayoutsCard(isSmallScreen)),
-              const SizedBox(width: AppSizes.paddingMD),
-              Expanded(flex: 1, child: _buildSubscriptionsCard(isSmallScreen)),
+              // Header
+              Text(
+                'Financial Dashboard',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingSM),
+              Text(
+                'Monitor earnings, escrow, and payouts',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 12 : 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // Revenue Stats
+              FutureBuilder<Map<String, dynamic>>(
+                future: Future.wait([
+                  OrderService.getOrderStatistics(),
+                  SubscriptionService.getSubscriptionStats(),
+                ]).then((results) => {...results[0], ...results[1]}),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: LinearProgressIndicator());
+                  }
+                  final stats = snapshot.data ?? {};
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: AppSizes.paddingMD,
+                    mainAxisSpacing: AppSizes.paddingMD,
+                    childAspectRatio: childAspectRatio,
+                    children: [
+                      StatCard(
+                        title: 'Released Revenue',
+                        value:
+                            '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
+                        icon: Icons.attach_money,
+                        color: AppColors.success,
+                        subtitle: 'Funds cleared',
+                      ),
+                      StatCard(
+                        title: 'Escrow Held',
+                        value:
+                            '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
+                        icon: Icons.account_balance_wallet,
+                        color: AppColors.warning,
+                        subtitle: 'Awaiting delivery',
+                      ),
+                      StatCard(
+                        title: 'Monthly Subs',
+                        value:
+                            '\$${(stats['monthlyRevenue'] ?? 0).toStringAsFixed(2)}',
+                        icon: Icons.card_membership,
+                        color: AppColors.primary,
+                        subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
+                      ),
+                      StatCard(
+                        title: 'Failed Payments',
+                        value: '${stats['failedCount'] ?? 0}',
+                        icon: Icons.warning_amber_rounded,
+                        color: AppColors.error,
+                        subtitle: 'Past Due Subs',
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // Charts Row
+              if (isNarrow)
+                Column(
+                  children: [
+                    _buildRevenueChart(),
+                    const SizedBox(height: AppSizes.paddingMD),
+                    _buildEscrowCard(),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 2, child: _buildRevenueChart()),
+                    const SizedBox(width: AppSizes.paddingMD),
+                    Expanded(child: _buildEscrowCard()),
+                  ],
+                ),
+
+              const SizedBox(height: AppSizes.paddingXL),
+
+              // Payouts & Subscriptions Section
+              if (isNarrow)
+                Column(
+                  children: [
+                    _buildPayoutsCard(isMobile),
+                    const SizedBox(height: AppSizes.paddingMD),
+                    _buildSubscriptionsCard(isMobile),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 1, child: _buildPayoutsCard(isMobile)),
+                    const SizedBox(width: AppSizes.paddingMD),
+                    Expanded(flex: 1, child: _buildSubscriptionsCard(isMobile)),
+                  ],
+                ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

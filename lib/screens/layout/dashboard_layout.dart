@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/responsive.dart';
 import '../dashboard/overview_screen.dart';
 import '../users/users_screen.dart';
 import '../orders/orders_screen.dart';
@@ -76,6 +77,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
               style: GoogleFonts.inter(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
+                fontSize: Responsive.isMobile(context) ? 18 : 20,
               ),
             ),
             actions: [
@@ -84,34 +86,37 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _authController.user?.email ?? 'Admin',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                    if (!Responsive.isMobile(context))
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _authController.user?.email ?? 'Admin',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Administrator',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                          Text(
+                            'Administrator',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(width: 12),
                     PopupMenuButton<String>(
                       icon: CircleAvatar(
+                        radius: Responsive.isMobile(context) ? 16 : 20,
                         backgroundColor: AppColors.primary.withOpacity(0.1),
-                        child: const Icon(
+                        child: Icon(
                           Icons.person,
                           color: AppColors.primary,
+                          size: Responsive.isMobile(context) ? 20 : 24,
                         ),
                       ),
                       onSelected: (value) {

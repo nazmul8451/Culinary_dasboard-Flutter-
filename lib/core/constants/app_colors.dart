@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 /// App-wide color constants for Culinary Admin Dashboard
 class AppColors {
   // Primary Colors (Orange theme matching mobile app)
-  static const Color primary = Color(0xFFFF6B35);
-  static const Color primaryLight = Color(0xFFFF8C61);
-  static const Color primaryDark = Color(0xFFE85A2A);
+  static const Color primary = Color.fromARGB(255, 182, 7, 1);
+  static const Color primaryLight = Color.fromARGB(255, 182, 7, 1);
+  static const Color primaryDark = Color.fromARGB(255, 182, 7, 1);
 
   // Secondary Colors
   static const Color secondary = Color(0xFF2196F3);

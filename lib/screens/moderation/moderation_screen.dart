@@ -32,73 +32,77 @@ class _ModerationScreenState extends State<ModerationScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(
-        isSmallScreen ? AppSizes.paddingMD : AppSizes.paddingLG,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          if (!isSmallScreen) ...[
-            Text(
-              'Content Moderation',
-              style: GoogleFonts.inter(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSM),
-            Text(
-              'Review and moderate platform content',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingLG),
-          ],
-
-          // Tabs
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: AppColors.primary,
-              labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              tabs: const [
-                Tab(text: 'Product Approvals'),
-                Tab(text: 'Reported Content'),
-              ],
-            ),
+        return Padding(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Text(
+                'Content Moderation',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingSM),
+              Text(
+                'Review and moderate platform content',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 12 : 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingLG),
 
-          const SizedBox(height: AppSizes.paddingMD),
+              // Tabs
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: isMobile,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  tabs: const [
+                    Tab(text: 'Product Approvals'),
+                    Tab(text: 'Reported Content'),
+                  ],
+                ),
+              ),
 
-          // Tab Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildProductApprovals(isSmallScreen),
-                _buildReportedContent(isSmallScreen),
-              ],
-            ),
+              const SizedBox(height: AppSizes.paddingMD),
+
+              // Tab Content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildProductApprovals(isMobile, screenWidth),
+                    _buildReportedContent(isMobile),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildProductApprovals(bool isSmallScreen) {
+  Widget _buildProductApprovals(bool isSmallScreen, double screenWidth) {
     return Card(
       elevation: AppSizes.cardElevation,
       shape: RoundedRectangleBorder(
@@ -140,12 +144,12 @@ class _ModerationScreenState extends State<ModerationScreen>
           return GridView.builder(
             padding: const EdgeInsets.all(AppSizes.paddingMD),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isSmallScreen
-                  ? 1
-                  : (MediaQuery.of(context).size.width < 900 ? 2 : 3),
+              crossAxisCount: isSmallScreen ? 1 : (screenWidth < 900 ? 2 : 3),
               crossAxisSpacing: AppSizes.paddingMD,
               mainAxisSpacing: AppSizes.paddingMD,
-              childAspectRatio: isSmallScreen ? 1.2 : 0.85,
+              childAspectRatio: isSmallScreen
+                  ? 1.2
+                  : (screenWidth < 1200 ? 0.85 : 0.95),
             ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {

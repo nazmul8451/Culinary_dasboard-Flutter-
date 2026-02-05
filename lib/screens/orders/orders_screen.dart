@@ -26,101 +26,108 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(
-        isSmallScreen ? AppSizes.paddingMD : AppSizes.paddingLG,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          if (!isSmallScreen) ...[
-            Text(
-              'Order Management',
-              style: GoogleFonts.inter(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSM),
-            Text(
-              'Track and manage all orders',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingLG),
-          ],
-
-          // Search and Filter Row
-          Wrap(
-            spacing: AppSizes.paddingMD,
-            runSpacing: AppSizes.paddingMD,
+        return Padding(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: isSmallScreen ? double.infinity : 300,
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search orders...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.toLowerCase();
-                    });
-                  },
+              // Header
+              Text(
+                'Order Management',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              SizedBox(
-                width: isSmallScreen ? double.infinity : 200,
-                child: DropdownButtonFormField<OrderStatus?>(
-                  value: _selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Filter by Status',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('All Orders'),
-                    ),
-                    ...OrderStatus.values.map(
-                      (status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(_getStatusText(status)),
+              const SizedBox(height: AppSizes.paddingSM),
+              Text(
+                'Track and manage all orders',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 12 : 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingLG),
+
+              // Search and Filter Row
+              Wrap(
+                spacing: AppSizes.paddingMD,
+                runSpacing: AppSizes.paddingMD,
+                children: [
+                  SizedBox(
+                    width: isMobile ? double.infinity : 300,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search orders...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSM,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
                       ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
                     ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedStatus = value;
-                    });
-                  },
-                ),
+                  ),
+                  SizedBox(
+                    width: isMobile ? double.infinity : 200,
+                    child: DropdownButtonFormField<OrderStatus?>(
+                      value: _selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Filter by Status',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSM,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('All Orders'),
+                        ),
+                        ...OrderStatus.values.map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(_getStatusText(status)),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedStatus = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
               ),
+
+              const SizedBox(height: AppSizes.paddingMD),
+
+              // Orders Table/List
+              Expanded(child: _buildOrdersList(isMobile)),
             ],
           ),
-
-          const SizedBox(height: AppSizes.paddingMD),
-
-          // Orders Table/List
-          Expanded(child: _buildOrdersList(isSmallScreen)),
-        ],
-      ),
+        );
+      },
     );
   }
 

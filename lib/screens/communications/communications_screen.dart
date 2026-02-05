@@ -42,80 +42,86 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(
-        isSmallScreen ? AppSizes.paddingMD : AppSizes.paddingLG,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Communications',
-            style: GoogleFonts.inter(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+        return Padding(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
           ),
-          const SizedBox(height: AppSizes.paddingMD),
-          TabBar(
-            controller: _tabController,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSecondary,
-            indicatorColor: AppColors.primary,
-            tabs: [
-              const Tab(text: 'Broadcast Messages'),
-              StreamBuilder<int>(
-                stream: MessageService.getTotalUnreadCount(),
-                builder: (context, snapshot) {
-                  final count = snapshot.data ?? 0;
-                  return Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Individual Chats'),
-                        if (count > 0) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              count.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Communications',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingMD),
+              TabBar(
+                controller: _tabController,
+                isScrollable: isMobile,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicatorColor: AppColors.primary,
+                tabs: [
+                  const Tab(text: 'Broadcast Messages'),
+                  StreamBuilder<int>(
+                    stream: MessageService.getTotalUnreadCount(),
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      return Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Individual Chats'),
+                            if (count > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  count.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.paddingMD),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildBroadcastTab(isMobile),
+                    _buildChatsTab(isMobile),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.paddingMD),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildBroadcastTab(isSmallScreen),
-                _buildChatsTab(isSmallScreen),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -141,9 +147,12 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                     ),
                   ),
                   const SizedBox(height: AppSizes.paddingMD),
-                  Row(
+                  Wrap(
+                    spacing: AppSizes.paddingMD,
+                    runSpacing: AppSizes.paddingMD,
                     children: [
-                      Expanded(
+                      SizedBox(
+                        width: isSmallScreen ? double.infinity : 300,
                         child: DropdownButtonFormField<String>(
                           value: _selectedBroadcastTarget,
                           decoration: const InputDecoration(
@@ -171,8 +180,8 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                               setState(() => _selectedBroadcastTarget = val!),
                         ),
                       ),
-                      const SizedBox(width: AppSizes.paddingMD),
-                      Expanded(
+                      SizedBox(
+                        width: isSmallScreen ? double.infinity : 200,
                         child: DropdownButtonFormField<MessageType>(
                           value: _selectedBroadcastType,
                           decoration: const InputDecoration(

@@ -38,96 +38,100 @@ class _UsersScreenState extends State<UsersScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isMobile = screenWidth < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(
-        isSmallScreen ? AppSizes.paddingMD : AppSizes.paddingLG,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          if (!isSmallScreen) ...[
-            Text(
-              'User Management',
-              style: GoogleFonts.inter(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSM),
-            Text(
-              'Manage buyers, sellers, and couriers',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingLG),
-          ],
-
-          // Search Bar
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search users by name or email...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value.toLowerCase();
-              });
-            },
+        return Padding(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Text(
+                'User Management',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingSM),
+              Text(
+                'Manage buyers, sellers, and couriers',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 12 : 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingLG),
 
-          const SizedBox(height: AppSizes.paddingMD),
+              // Search Bar
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search users by name or email...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              ),
 
-          // Tabs
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: AppColors.primary,
-              labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              tabs: const [
-                Tab(text: 'All Users'),
-                Tab(text: 'Pending Verification'),
-                Tab(text: 'Buyers'),
-                Tab(text: 'Sellers'),
-                Tab(text: 'Couriers'),
-              ],
-            ),
+              const SizedBox(height: AppSizes.paddingMD),
+
+              // Tabs
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: isMobile,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                  labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  tabs: const [
+                    Tab(text: 'All Users'),
+                    Tab(text: 'Verification'),
+                    Tab(text: 'Buyers'),
+                    Tab(text: 'Sellers'),
+                    Tab(text: 'Couriers'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSizes.paddingMD),
+
+              // Tab Content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildUserTable(null),
+                    _buildUserTable(null, onlyPending: true),
+                    _buildUserTable(UserType.buyer),
+                    _buildUserTable(UserType.seller),
+                    _buildUserTable(UserType.courier),
+                  ],
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: AppSizes.paddingMD),
-
-          // Tab Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildUserTable(null),
-                _buildUserTable(null, onlyPending: true),
-                _buildUserTable(UserType.buyer),
-                _buildUserTable(UserType.seller),
-                _buildUserTable(UserType.courier),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -14,57 +14,74 @@ class SupportTicketsScreen extends StatefulWidget {
 class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSizes.paddingLG),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Support Tickets',
-            style: GoogleFonts.inter(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingLG),
-          Expanded(
-            child: StreamBuilder<List<TicketModel>>(
-              stream: SupportService.getAllTickets(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No support tickets found'));
-                }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
 
-                final tickets = snapshot.data!;
-                return ListView.builder(
-                  itemCount: tickets.length,
-                  itemBuilder: (context, index) {
-                    final ticket = tickets[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: AppSizes.paddingMD),
-                      child: ListTile(
-                        title: Text(
-                          ticket.subject,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          '${ticket.category.name.toUpperCase()} - ${ticket.status.name.toUpperCase()}',
-                        ),
-                        trailing: _buildStatusBadge(ticket.status),
-                        onTap: () => _showTicketDetails(ticket),
-                      ),
+        return Padding(
+          padding: EdgeInsets.all(
+            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Support Tickets',
+                style: GoogleFonts.inter(
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingLG),
+              Expanded(
+                child: StreamBuilder<List<TicketModel>>(
+                  stream: SupportService.getAllTickets(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text('No support tickets found'),
+                      );
+                    }
+
+                    final tickets = snapshot.data!;
+                    return ListView.builder(
+                      itemCount: tickets.length,
+                      itemBuilder: (context, index) {
+                        final ticket = tickets[index];
+                        return Card(
+                          margin: const EdgeInsets.only(
+                            bottom: AppSizes.paddingMD,
+                          ),
+                          child: ListTile(
+                            title: Text(
+                              ticket.subject,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${ticket.category.name.toUpperCase()} - ${ticket.status.name.toUpperCase()}',
+                              style: GoogleFonts.inter(fontSize: 12),
+                            ),
+                            trailing: isMobile
+                                ? null
+                                : _buildStatusBadge(ticket.status),
+                            onTap: () => _showTicketDetails(ticket),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

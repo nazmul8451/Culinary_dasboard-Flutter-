@@ -41,6 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -52,15 +55,21 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.paddingLG),
+            padding: EdgeInsets.all(
+              isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+            ),
             child: Card(
               elevation: 8,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusLG),
               ),
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 450),
-                padding: const EdgeInsets.all(AppSizes.paddingXL),
+                constraints: BoxConstraints(
+                  maxWidth: isMobile ? screenWidth * 0.9 : 450,
+                ),
+                padding: EdgeInsets.all(
+                  isMobile ? AppSizes.paddingLG : AppSizes.paddingXL,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -69,26 +78,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // Logo/Icon
                       Container(
-                        padding: const EdgeInsets.all(AppSizes.paddingLG),
+                        padding: EdgeInsets.all(
+                          isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.admin_panel_settings,
-                          size: 64,
+                          size: isMobile ? 48 : 64,
                           color: AppColors.primary,
                         ),
                       ),
 
-                      const SizedBox(height: AppSizes.paddingLG),
+                      SizedBox(
+                        height: isMobile
+                            ? AppSizes.paddingMD
+                            : AppSizes.paddingLG,
+                      ),
 
                       // Title
                       Text(
                         'Admin Dashboard',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
-                          fontSize: 28,
+                          fontSize: isMobile ? 24 : 28,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
@@ -100,12 +115,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Sign in to manage Culinary Tales',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: isMobile ? 12 : 14,
                           color: AppColors.textSecondary,
                         ),
                       ),
 
-                      const SizedBox(height: AppSizes.paddingXL),
+                      SizedBox(
+                        height: isMobile
+                            ? AppSizes.paddingLG
+                            : AppSizes.paddingXL,
+                      ),
 
                       // Email Field
                       TextFormField(
