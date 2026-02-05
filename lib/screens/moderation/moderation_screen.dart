@@ -12,7 +12,9 @@ class ModerationScreen extends StatefulWidget {
 }
 
 class _ModerationScreenState extends State<ModerationScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   late TabController _tabController;
 
   @override
@@ -29,6 +31,7 @@ class _ModerationScreenState extends State<ModerationScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Padding(
@@ -221,13 +224,37 @@ class _ModerationScreenState extends State<ModerationScreen>
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSizes.paddingSM),
-                  Text(
-                    '\$${data['price'] ?? '0.00'}',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${data['price'] ?? '0.00'}',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      if (data['unitWeight'] != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${data['unitWeight']} ${data['unitType'] ?? 'kg'}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const Spacer(),
                   Row(

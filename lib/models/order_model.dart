@@ -9,6 +9,8 @@ enum OrderStatus {
   cancelled,
 }
 
+enum EscrowStatus { held, released, refunded }
+
 class OrderModel {
   final String id;
   final String buyerId;
@@ -21,11 +23,15 @@ class OrderModel {
   final double totalAmount;
   final double deliveryFee;
   final OrderStatus status;
+  final EscrowStatus escrowStatus;
   final String deliveryAddress;
   final DateTime createdAt;
   final DateTime? deliveredAt;
   final String? notes;
   final bool hasDispute;
+  final String? trackingNumber;
+  final String? trackingProvider;
+  final String? disputeDetails;
 
   OrderModel({
     required this.id,
@@ -39,11 +45,15 @@ class OrderModel {
     required this.totalAmount,
     required this.deliveryFee,
     required this.status,
+    required this.escrowStatus,
     required this.deliveryAddress,
     required this.createdAt,
     this.deliveredAt,
     this.notes,
     this.hasDispute = false,
+    this.trackingNumber,
+    this.trackingProvider,
+    this.disputeDetails,
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
@@ -64,12 +74,58 @@ class OrderModel {
       totalAmount: (data['totalAmount'] ?? 0).toDouble(),
       deliveryFee: (data['deliveryFee'] ?? 0).toDouble(),
       status: _parseOrderStatus(data['status']),
+      escrowStatus: _parseEscrowStatus(data['escrowStatus']),
       deliveryAddress: data['deliveryAddress'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       deliveredAt: (data['deliveredAt'] as Timestamp?)?.toDate(),
       notes: data['notes'],
       hasDispute: data['hasDispute'] ?? false,
+      trackingNumber: data['trackingNumber'],
+      trackingProvider: data['trackingProvider'],
+      disputeDetails: data['disputeDetails'],
     );
+  }
+
+  factory OrderModel.fromRealtimeDatabase(
+    String id,
+    Map<dynamic, dynamic> data,
+  ) {
+    return OrderModel(
+      id: id,
+      buyerId: data['buyerId']?.toString() ?? '',
+      sellerId: data['sellerId']?.toString() ?? '',
+      courierId: data['courierId']?.toString(),
+      buyerName: data['buyerName']?.toString() ?? '',
+      sellerName: data['sellerName']?.toString() ?? '',
+      courierName: data['courierName']?.toString(),
+      items: data['items'] != null
+          ? (data['items'] as List)
+                .map(
+                  (item) =>
+                      OrderItem.fromMap(Map<String, dynamic>.from(item as Map)),
+                )
+                .toList()
+          : [],
+      totalAmount: (data['totalAmount'] ?? 0).toDouble(),
+      deliveryFee: (data['deliveryFee'] ?? 0).toDouble(),
+      status: _parseOrderStatus(data['status']),
+      escrowStatus: _parseEscrowStatus(data['escrowStatus']),
+      deliveryAddress: data['deliveryAddress']?.toString() ?? '',
+      createdAt: _parseDateTime(data['createdAt']),
+      deliveredAt: _parseDateTime(data['deliveredAt'], isOptional: true),
+      notes: data['notes']?.toString(),
+      hasDispute: data['hasDispute'] as bool? ?? false,
+      trackingNumber: data['trackingNumber']?.toString(),
+      trackingProvider: data['trackingProvider']?.toString(),
+      disputeDetails: data['disputeDetails']?.toString(),
+    );
+  }
+
+  static DateTime _parseDateTime(dynamic value, {bool isOptional = false}) {
+    if (value == null) return DateTime.now();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    return DateTime.now();
   }
 
   static OrderStatus _parseOrderStatus(dynamic value) {
@@ -80,6 +136,16 @@ class OrderModel {
       );
     }
     return OrderStatus.pending;
+  }
+
+  static EscrowStatus _parseEscrowStatus(dynamic value) {
+    if (value is String) {
+      return EscrowStatus.values.firstWhere(
+        (e) => e.name == value.toLowerCase(),
+        orElse: () => EscrowStatus.held,
+      );
+    }
+    return EscrowStatus.held;
   }
 
   double get grandTotal => totalAmount + deliveryFee;

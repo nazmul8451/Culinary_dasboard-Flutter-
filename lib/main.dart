@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'controllers/auth_controller.dart';
 import 'firebase_options.dart';
+import 'services/realtime_database_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/layout/dashboard_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Realtime Database
+  await RealtimeDatabaseService.initialize();
+
+  // Initialize GetX controllers
+  Get.put(AuthController());
+
   runApp(const MyApp());
 }
 

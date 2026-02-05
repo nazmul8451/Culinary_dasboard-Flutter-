@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:data_table_2/data_table_2.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../services/user_service.dart';
 import '../../models/user_model.dart';
+import '../../widgets/chat_dialog.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -14,7 +15,9 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -22,7 +25,7 @@ class _UsersScreenState extends State<UsersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -34,6 +37,7 @@ class _UsersScreenState extends State<UsersScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Padding(
@@ -99,6 +103,7 @@ class _UsersScreenState extends State<UsersScreen>
               labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
               tabs: const [
                 Tab(text: 'All Users'),
+                Tab(text: 'Pending Verification'),
                 Tab(text: 'Buyers'),
                 Tab(text: 'Sellers'),
                 Tab(text: 'Couriers'),
@@ -114,6 +119,7 @@ class _UsersScreenState extends State<UsersScreen>
               controller: _tabController,
               children: [
                 _buildUserTable(null),
+                _buildUserTable(null, onlyPending: true),
                 _buildUserTable(UserType.buyer),
                 _buildUserTable(UserType.seller),
                 _buildUserTable(UserType.courier),
@@ -125,7 +131,7 @@ class _UsersScreenState extends State<UsersScreen>
     );
   }
 
-  Widget _buildUserTable(UserType? filterType) {
+  Widget _buildUserTable(UserType? filterType, {bool onlyPending = false}) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Card(
@@ -133,19 +139,16 @@ class _UsersScreenState extends State<UsersScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
       ),
-      child: StreamBuilder<QuerySnapshot>(
+      child: StreamBuilder<List<UserModel>>(
         stream: filterType == null
-            ? FirebaseFirestore.instance.collection('users').snapshots()
-            : FirebaseFirestore.instance
-                  .collection('users')
-                  .where('userType', isEqualTo: filterType.name)
-                  .snapshots(),
+            ? UserService.getAllUsers()
+            : UserService.getUsersByType(filterType),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -168,15 +171,16 @@ class _UsersScreenState extends State<UsersScreen>
             );
           }
 
-          var users = snapshot.data!.docs
-              .map((doc) => UserModel.fromFirestore(doc))
-              .where(
-                (user) =>
-                    _searchQuery.isEmpty ||
-                    user.name.toLowerCase().contains(_searchQuery) ||
-                    user.email.toLowerCase().contains(_searchQuery),
-              )
-              .toList();
+          var users = snapshot.data!.where((user) {
+            final matchesSearch =
+                _searchQuery.isEmpty ||
+                user.name.toLowerCase().contains(_searchQuery) ||
+                user.email.toLowerCase().contains(_searchQuery);
+            final matchesPending =
+                !onlyPending ||
+                user.verificationStatus == VerificationStatus.pending;
+            return matchesSearch && matchesPending;
+          }).toList();
 
           if (isSmallScreen) {
             // Mobile List View
@@ -460,7 +464,7 @@ class _UsersScreenState extends State<UsersScreen>
               title: const Text('View Details'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Show user details
+                _showUserDetails(user);
               },
             ),
             if (user.status == UserStatus.active)
@@ -484,17 +488,279 @@ class _UsersScreenState extends State<UsersScreen>
                   _activateUser(user);
                 },
               ),
+            ListTile(
+              leading: const Icon(Icons.message, color: AppColors.primary),
+              title: const Text('Send Message'),
+              onTap: () {
+                Navigator.pop(context);
+                _openChat(user);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
+  void _showUserDetails(UserModel user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('User Details', style: GoogleFonts.inter()),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: _getUserTypeColor(
+                    user.userType,
+                  ).withOpacity(0.1),
+                  child: Icon(
+                    _getUserTypeIcon(user.userType),
+                    size: 40,
+                    color: _getUserTypeColor(user.userType),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingLG),
+              _buildDetailItem('Name', user.name),
+              _buildDetailItem('Email', user.email),
+              _buildDetailItem('User Type', user.userType.name.toUpperCase()),
+              _buildDetailItem('Status', user.status.name.toUpperCase()),
+              if (user.phone != null) _buildDetailItem('Phone', user.phone!),
+              _buildDetailItem(
+                'Joined',
+                user.createdAt.toString().split('.')[0],
+              ),
+              const Divider(),
+              Text(
+                'Verification Status:',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              _buildVerificationRow(
+                'Overall',
+                user.verificationStatus ?? VerificationStatus.pending,
+              ),
+              _buildVerificationRow(
+                'ID Document',
+                user.idVerificationStatus ?? VerificationStatus.pending,
+              ),
+              _buildVerificationRow(
+                'Facial Check',
+                user.facialVerificationStatus ?? VerificationStatus.pending,
+              ),
+              if (user.userType == UserType.seller &&
+                  user.trialStartDate != null) ...[
+                const Divider(),
+                Text(
+                  'Trial Period:',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                ),
+                _buildDetailItem(
+                  'Trial Started',
+                  user.trialStartDate!.toString().split('.')[0],
+                ),
+                _buildTrialProgress(user.trialStartDate!),
+              ],
+              if (user.userType == UserType.seller) ...[
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Shipping Rules:',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showManageShippingRules(user);
+                      },
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Manage'),
+                    ),
+                  ],
+                ),
+                _buildDetailItem('Base Cost/Kg', '\$${user.costPerKg ?? 0.0}'),
+                _buildDetailItem('Min Fee', '\$${user.minShippingFee ?? 0.0}'),
+                if (user.shippingRules != null &&
+                    user.shippingRules!.isNotEmpty)
+                  Text(
+                    '${user.shippingRules!.length} country rules defined',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
+              if (user.metadata != null) ...[
+                const Divider(),
+                Text(
+                  'Metadata:',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                ),
+                ...user.metadata!.entries.map(
+                  (e) => _buildDetailItem(e.key, e.value.toString()),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (user.verificationStatus == VerificationStatus.pending) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _rejectUser(user);
+              },
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              child: const Text('Reject'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _approveUser(user);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Approve'),
+            ),
+            const SizedBox(width: AppSizes.paddingSM),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _openChat(user);
+              },
+              icon: const Icon(Icons.message, size: 16),
+              label: const Text('Message'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openChat(UserModel user) {
+    showDialog(
+      context: context,
+      builder: (context) => ChatDialog(user: user),
+    );
+  }
+
+  void _showManageShippingRules(UserModel user) {
+    final costController = TextEditingController(
+      text: (user.costPerKg ?? 0.0).toString(),
+    );
+    final minFeeController = TextEditingController(
+      text: (user.minShippingFee ?? 0.0).toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Manage Shipping: ${user.name}',
+          style: GoogleFonts.inter(),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: costController,
+              decoration: const InputDecoration(
+                labelText: 'Shipping Cost Per Kg (\$)',
+                prefixText: '\$ ',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: AppSizes.paddingMD),
+            TextField(
+              controller: minFeeController,
+              decoration: const InputDecoration(
+                labelText: 'Minimum Shipping Fee (\$)',
+                prefixText: '\$ ',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: AppSizes.paddingMD),
+            const Text(
+              'Per-country rules and validation logic are preserved in metadata. Direct editing of map rules will be available in the next update.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final cost = double.tryParse(costController.text);
+              final minFee = double.tryParse(minFeeController.text);
+              if (cost != null && minFee != null) {
+                await UserService.updateShippingRules(
+                  user.id,
+                  costPerKg: cost,
+                  minShippingFee: minFee,
+                );
+                Navigator.pop(context);
+                _showSnackBar('Shipping rules updated', AppColors.success);
+              }
+            },
+            child: const Text('Save Rules'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.paddingSM),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _banUser(UserModel user) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
-        'status': UserStatus.banned.name,
-      });
+      await UserService.updateUserStatus(user.id, UserStatus.banned);
       _showSnackBar('User banned successfully', AppColors.success);
     } catch (e) {
       _showSnackBar('Failed to ban user', AppColors.error);
@@ -503,9 +769,7 @@ class _UsersScreenState extends State<UsersScreen>
 
   Future<void> _activateUser(UserModel user) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
-        'status': UserStatus.active.name,
-      });
+      await UserService.updateUserStatus(user.id, UserStatus.active);
       _showSnackBar('User activated successfully', AppColors.success);
     } catch (e) {
       _showSnackBar('Failed to activate user', AppColors.error);
@@ -516,6 +780,106 @@ class _UsersScreenState extends State<UsersScreen>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
+  Widget _buildVerificationRow(String label, VerificationStatus status) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 13)),
+          _buildStatusBadge(status.name, _getVerificationColor(status)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrialProgress(DateTime startDate) {
+    final now = DateTime.now();
+    final endDate = startDate.add(const Duration(days: 14));
+    final totalDays = endDate.difference(startDate).inDays;
+    final usedDays = now.difference(startDate).inDays;
+    final progress = (usedDays / totalDays).clamp(0.0, 1.0);
+    final remainingDays = totalDays - usedDays;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: progress,
+          backgroundColor: AppColors.background,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            progress > 0.8 ? AppColors.error : AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          progress >= 1.0
+              ? 'Trial Ended'
+              : '$remainingDays days remaining in trial',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: progress > 0.8 ? AppColors.error : AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _approveUser(UserModel user) async {
+    try {
+      await UserService.updateVerificationStatus(
+        user.id,
+        VerificationStatus.verified,
+      );
+      _showSnackBar('User approved successfully', AppColors.success);
+    } catch (e) {
+      _showSnackBar('Failed to approve user', AppColors.error);
+    }
+  }
+
+  Future<void> _rejectUser(UserModel user) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Verification'),
+        content: TextField(
+          controller: reasonController,
+          decoration: const InputDecoration(
+            hintText: 'Enter rejection reason...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await UserService.updateVerificationStatus(
+          user.id,
+          VerificationStatus.rejected,
+          reason: reasonController.text,
+        );
+        _showSnackBar('User rejected successfully', AppColors.error);
+      } catch (e) {
+        _showSnackBar('Failed to reject user', AppColors.error);
+      }
+    }
   }
 
   Color _getUserTypeColor(UserType type) {

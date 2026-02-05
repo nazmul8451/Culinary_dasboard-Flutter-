@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
 import '../../models/user_model.dart';
 import '../../models/order_model.dart';
+import '../../services/user_service.dart';
+import '../../services/order_service.dart';
 
 class OverviewScreen extends StatelessWidget {
   const OverviewScreen({super.key});
@@ -37,31 +38,12 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: AppSizes.paddingXL),
 
           // Statistics Cards
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').snapshots(),
+          FutureBuilder<Map<String, int>>(
+            future: UserService.getUserStatistics(),
             builder: (context, snapshot) {
-              final totalUsers = snapshot.data?.docs.length ?? 0;
-              final buyers =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['userType'] == 'buyer',
-                      )
-                      .length ??
-                  0;
-              final sellers =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['userType'] == 'seller',
-                      )
-                      .length ??
-                  0;
-              final couriers =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['userType'] == 'courier',
-                      )
-                      .length ??
-                  0;
+              final stats =
+                  snapshot.data ??
+                  {'total': 0, 'buyers': 0, 'sellers': 0, 'couriers': 0};
 
               return GridView.count(
                 crossAxisCount: 4,
@@ -73,26 +55,26 @@ class OverviewScreen extends StatelessWidget {
                 children: [
                   StatCard(
                     title: 'Total Users',
-                    value: totalUsers.toString(),
+                    value: stats['total'].toString(),
                     icon: Icons.people,
                     color: AppColors.primary,
                     percentageChange: 12.5,
                   ),
                   StatCard(
                     title: 'Buyers',
-                    value: buyers.toString(),
+                    value: stats['buyers'].toString(),
                     icon: Icons.shopping_cart,
                     color: AppColors.secondary,
                   ),
                   StatCard(
                     title: 'Sellers',
-                    value: sellers.toString(),
+                    value: stats['sellers'].toString(),
                     icon: Icons.store,
                     color: AppColors.success,
                   ),
                   StatCard(
                     title: 'Couriers',
-                    value: couriers.toString(),
+                    value: stats['couriers'].toString(),
                     icon: Icons.delivery_dining,
                     color: AppColors.warning,
                   ),
@@ -104,31 +86,12 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: AppSizes.paddingXL),
 
           // Order Statistics
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+          FutureBuilder<Map<String, dynamic>>(
+            future: OrderService.getOrderStatistics(),
             builder: (context, snapshot) {
-              final totalOrders = snapshot.data?.docs.length ?? 0;
-              final pendingOrders =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['status'] == 'pending',
-                      )
-                      .length ??
-                  0;
-              final onTheWayOrders =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['status'] == 'onTheWay',
-                      )
-                      .length ??
-                  0;
-              final deliveredOrders =
-                  snapshot.data?.docs
-                      .where(
-                        (doc) => (doc.data() as Map)['status'] == 'delivered',
-                      )
-                      .length ??
-                  0;
+              final stats =
+                  snapshot.data ??
+                  {'total': 0, 'pending': 0, 'onTheWay': 0, 'delivered': 0};
 
               return GridView.count(
                 crossAxisCount: 4,
@@ -140,26 +103,26 @@ class OverviewScreen extends StatelessWidget {
                 children: [
                   StatCard(
                     title: 'Total Orders',
-                    value: totalOrders.toString(),
+                    value: stats['total'].toString(),
                     icon: Icons.shopping_bag,
                     color: AppColors.primary,
                     percentageChange: 8.3,
                   ),
                   StatCard(
                     title: 'Pending',
-                    value: pendingOrders.toString(),
+                    value: stats['pending'].toString(),
                     icon: Icons.pending,
                     color: AppColors.warning,
                   ),
                   StatCard(
                     title: 'On The Way',
-                    value: onTheWayOrders.toString(),
+                    value: stats['onTheWay'].toString(),
                     icon: Icons.local_shipping,
                     color: AppColors.info,
                   ),
                   StatCard(
                     title: 'Delivered',
-                    value: deliveredOrders.toString(),
+                    value: stats['delivered'].toString(),
                     icon: Icons.check_circle,
                     color: AppColors.success,
                   ),
@@ -218,18 +181,33 @@ class OverviewScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSizes.paddingMD),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .orderBy('createdAt', descending: true)
-                  .limit(5)
-                  .snapshots(),
+            StreamBuilder<List<OrderModel>>(
+              stream: OrderService.getAllOrders(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSizes.paddingLG),
+                      child: Text(
+                        'Error loading orders: ${snapshot.error}',
+                        style: GoogleFonts.inter(color: AppColors.error),
+                      ),
+                    ),
+                  );
                 }
 
-                if (snapshot.data!.docs.isEmpty) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSizes.paddingLG),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                final orders = snapshot.data?.take(5).toList() ?? [];
+
+                if (orders.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSizes.paddingXL),
@@ -246,12 +224,10 @@ class OverviewScreen extends StatelessWidget {
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: orders.length,
                   separatorBuilder: (context, index) => const Divider(),
                   itemBuilder: (context, index) {
-                    final order = OrderModel.fromFirestore(
-                      snapshot.data!.docs[index],
-                    );
+                    final order = orders[index];
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
@@ -340,18 +316,22 @@ class OverviewScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSizes.paddingMD),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .where('verificationStatus', isEqualTo: 'pending')
-                  .limit(5)
-                  .snapshots(),
+            StreamBuilder<List<UserModel>>(
+              stream: UserService.getAllUsers(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (snapshot.data!.docs.isEmpty) {
+                final pendingUsers = snapshot.data!
+                    .where(
+                      (user) =>
+                          user.verificationStatus == VerificationStatus.pending,
+                    )
+                    .take(5)
+                    .toList();
+
+                if (pendingUsers.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSizes.paddingXL),
@@ -368,12 +348,10 @@ class OverviewScreen extends StatelessWidget {
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.docs.length,
+                  itemCount: pendingUsers.length,
                   separatorBuilder: (context, index) => const Divider(),
                   itemBuilder: (context, index) {
-                    final user = UserModel.fromFirestore(
-                      snapshot.data!.docs[index],
-                    );
+                    final user = pendingUsers[index];
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(

@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
+import '../../services/order_service.dart';
+import '../../services/subscription_service.dart';
 
 class FinancialScreen extends StatelessWidget {
   const FinancialScreen({super.key});
@@ -42,46 +44,57 @@ class FinancialScreen extends StatelessWidget {
           ],
 
           // Revenue Stats
-          GridView.count(
-            crossAxisCount: isSmallScreen ? 1 : (isMediumScreen ? 2 : 4),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: AppSizes.paddingMD,
-            mainAxisSpacing: AppSizes.paddingMD,
-            childAspectRatio: isSmallScreen ? 2.5 : 1.5,
-            children: const [
-              StatCard(
-                title: 'Total Earnings',
-                value: '\$45,230',
-                icon: Icons.attach_money,
-                color: AppColors.success,
-                percentageChange: 15.3,
-                subtitle: 'This month',
-              ),
-              StatCard(
-                title: 'Subscriptions',
-                value: '\$12,450',
-                icon: Icons.card_membership,
-                color: AppColors.primary,
-                percentageChange: 8.2,
-                subtitle: 'Active subscriptions',
-              ),
-              StatCard(
-                title: 'Commissions',
-                value: '\$32,780',
-                icon: Icons.trending_up,
-                color: AppColors.secondary,
-                percentageChange: 12.5,
-                subtitle: 'From orders',
-              ),
-              StatCard(
-                title: 'Escrow Balance',
-                value: '\$18,920',
-                icon: Icons.account_balance_wallet,
-                color: AppColors.warning,
-                subtitle: 'Held in Stripe',
-              ),
-            ],
+          FutureBuilder<Map<String, dynamic>>(
+            future: Future.wait([
+              OrderService.getOrderStatistics(),
+              SubscriptionService.getSubscriptionStats(),
+            ]).then((results) => {...results[0], ...results[1]}),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: LinearProgressIndicator());
+              }
+              final stats = snapshot.data ?? {};
+              return GridView.count(
+                crossAxisCount: isSmallScreen ? 1 : (isMediumScreen ? 2 : 4),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: AppSizes.paddingMD,
+                mainAxisSpacing: AppSizes.paddingMD,
+                childAspectRatio: isSmallScreen ? 2.5 : 1.5,
+                children: [
+                  StatCard(
+                    title: 'Released Revenue',
+                    value:
+                        '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
+                    icon: Icons.attach_money,
+                    color: AppColors.success,
+                    subtitle: 'Funds cleared',
+                  ),
+                  StatCard(
+                    title: 'Escrow Held',
+                    value: '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
+                    icon: Icons.account_balance_wallet,
+                    color: AppColors.warning,
+                    subtitle: 'Awaiting delivery',
+                  ),
+                  StatCard(
+                    title: 'Monthly Subs',
+                    value:
+                        '\$${(stats['monthlyRevenue'] ?? 0).toStringAsFixed(2)}',
+                    icon: Icons.card_membership,
+                    color: AppColors.primary,
+                    subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
+                  ),
+                  StatCard(
+                    title: 'Failed Payments',
+                    value: '${stats['failedCount'] ?? 0}',
+                    icon: Icons.warning_amber_rounded,
+                    color: AppColors.error,
+                    subtitle: 'Past Due Subs',
+                  ),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: AppSizes.paddingXL),
@@ -107,9 +120,104 @@ class FinancialScreen extends StatelessWidget {
 
           const SizedBox(height: AppSizes.paddingXL),
 
-          // Payouts Table
-          _buildPayoutsCard(isSmallScreen),
+          // Payouts & Subscriptions Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 1, child: _buildPayoutsCard(isSmallScreen)),
+              const SizedBox(width: AppSizes.paddingMD),
+              Expanded(flex: 1, child: _buildSubscriptionsCard(isSmallScreen)),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionsCard(bool isSmallScreen) {
+    return Card(
+      elevation: AppSizes.cardElevation,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.paddingLG),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Subscription Oversight',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppSizes.paddingMD),
+            StreamBuilder<List<SubscriptionModel>>(
+              stream: SubscriptionService.getAllSubscriptions(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return const CircularProgressIndicator();
+                final subs = snapshot.data ?? [];
+                if (subs.isEmpty)
+                  return const Text('No active subscriptions found.');
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subs.length > 5 ? 5 : subs.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final sub = subs[index];
+                    return ListTile(
+                      title: Text(
+                        sub.vendorName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Next billing: ${sub.nextBillingDate.toString().split(' ')[0]}',
+                      ),
+                      trailing: _buildSubscriptionStatusBadge(sub.status),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionStatusBadge(SubscriptionStatus status) {
+    Color color;
+    switch (status) {
+      case SubscriptionStatus.active:
+        color = AppColors.success;
+        break;
+      case SubscriptionStatus.pastDue:
+        color = AppColors.error;
+        break;
+      case SubscriptionStatus.expired:
+        color = AppColors.textHint;
+        break;
+      case SubscriptionStatus.canceled:
+        color = AppColors.error;
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        status.name.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

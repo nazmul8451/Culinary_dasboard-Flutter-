@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:data_table_2/data_table_2.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../models/order_model.dart';
+import '../../services/order_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -130,23 +130,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
       ),
-      child: StreamBuilder<QuerySnapshot>(
+      child: StreamBuilder<List<OrderModel>>(
         stream: _selectedStatus == null
-            ? FirebaseFirestore.instance
-                  .collection('orders')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots()
-            : FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('status', isEqualTo: _selectedStatus!.name)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
+            ? OrderService.getAllOrders()
+            : OrderService.getOrdersByStatus(_selectedStatus!),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -169,8 +162,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             );
           }
 
-          var orders = snapshot.data!.docs
-              .map((doc) => OrderModel.fromFirestore(doc))
+          var orders = snapshot.data!
               .where(
                 (order) =>
                     _searchQuery.isEmpty ||
@@ -382,6 +374,102 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  void _showResolveDisputeDialog(OrderModel order) {
+    final notesController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resolve Dispute'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Review the claim and decide the outcome.',
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Resolution Notes',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await OrderService.resolveDispute(
+                order.id,
+                refundBuyer: true,
+                resolutionNotes: notesController.text,
+              );
+              Navigator.pop(context);
+              _showSnackBar('Refunded to buyer', AppColors.success);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Refund Buyer'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await OrderService.resolveDispute(
+                order.id,
+                refundBuyer: false,
+                resolutionNotes: notesController.text,
+              );
+              Navigator.pop(context);
+              _showSnackBar('Released to seller', AppColors.success);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Release to Seller'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReleaseEscrow(OrderModel order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Release Escrow'),
+        content: const Text(
+          'Are you sure you want to release funds to the seller? This action is permanent.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await OrderService.updateEscrowStatus(
+                order.id,
+                EscrowStatus.released,
+              );
+              Navigator.pop(context);
+              _showSnackBar('Funds released to seller', AppColors.success);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Confirm Release'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
   DataRow2 _buildOrderRow(OrderModel order) {
     return DataRow2(
       cells: [
@@ -461,13 +549,56 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 '\$${order.grandTotal.toStringAsFixed(2)}',
               ),
               _buildDetailRow('Status', _getStatusText(order.status)),
+              _buildDetailRow('Escrow', order.escrowStatus.name.toUpperCase()),
               _buildDetailRow('Address', order.deliveryAddress),
               _buildDetailRow('Date', _formatDate(order.createdAt)),
+              if (order.trackingNumber != null) ...[
+                _buildDetailRow('Tracking #', order.trackingNumber!),
+                _buildDetailRow(
+                  'Provider',
+                  order.trackingProvider ?? 'Unknown',
+                ),
+              ],
               if (order.notes != null) _buildDetailRow('Notes', order.notes!),
+              if (order.hasDispute) ...[
+                const Divider(),
+                Text(
+                  'DISPUTE INFORMATION',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.error,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  order.disputeDetails ?? 'No details provided.',
+                  style: GoogleFonts.inter(fontSize: 13),
+                ),
+              ],
             ],
           ),
         ),
         actions: [
+          if (order.hasDispute)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showResolveDisputeDialog(order);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Resolve Dispute'),
+            ),
+          if (order.escrowStatus == EscrowStatus.held && !order.hasDispute)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _confirmReleaseEscrow(order);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: const Text('Release Escrow'),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
