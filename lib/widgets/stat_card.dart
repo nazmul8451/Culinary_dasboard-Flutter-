@@ -32,15 +32,26 @@ class StatCard extends StatelessWidget {
         final isSmall = cardWidth < 180;
         final isXSmall = cardWidth < 140;
 
-        return Card(
-          elevation: AppSizes.cardElevation,
-          shape: RoundedRectangleBorder(
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+            border: Border.all(
+              color: AppColors.border.withOpacity(0.5),
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(AppSizes.radiusMD),
-            child: Container(
+            child: Padding(
               padding: EdgeInsets.all(
                 isSmall ? AppSizes.paddingSM : AppSizes.paddingMD,
               ),
@@ -56,7 +67,7 @@ class StatCard extends StatelessWidget {
                           isXSmall ? AppSizes.paddingSM : AppSizes.paddingMD,
                         ),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(
                             AppSizes.radiusSM,
                           ),
@@ -77,8 +88,8 @@ class StatCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: percentageChange! >= 0
-                                ? AppColors.success.withOpacity(0.1)
-                                : AppColors.error.withOpacity(0.1),
+                                ? AppColors.success.withOpacity(0.12)
+                                : AppColors.error.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(
                               AppSizes.radiusXS,
                             ),
@@ -100,7 +111,7 @@ class StatCard extends StatelessWidget {
                                 '${percentageChange!.abs().toStringAsFixed(1)}%',
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   color: percentageChange! >= 0
                                       ? AppColors.success
                                       : AppColors.error,
@@ -122,7 +133,8 @@ class StatCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: isSmall ? 12 : 14,
                       color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
                     ),
                   ),
 
@@ -135,8 +147,9 @@ class StatCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       fontSize: isSmall ? 20 : 28,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                   ),
 
@@ -150,6 +163,7 @@ class StatCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textHint,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],

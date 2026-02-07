@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/utils/animations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,13 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFF6B35), Color(0xFFFF8C61)],
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(
@@ -90,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           size: isMobile ? 48 : 64,
                           color: AppColors.primary,
                         ),
-                      ),
+                      ).animateScaleIn(),
 
                       SizedBox(
                         height: isMobile
@@ -107,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
-                      ),
+                      ).animateFadeInUp(delay: 100),
 
                       const SizedBox(height: AppSizes.paddingSM),
 
@@ -118,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: isMobile ? 12 : 14,
                           color: AppColors.textSecondary,
                         ),
-                      ),
+                      ).animateFadeInUp(delay: 200),
 
                       SizedBox(
                         height: isMobile
@@ -148,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
                           return null;
                         },
-                      ),
+                      ).animateFadeInUp(delay: 300),
 
                       const SizedBox(height: AppSizes.paddingMD),
 
@@ -186,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
                           return null;
                         },
-                      ),
+                      ).animateFadeInUp(delay: 400),
 
                       const SizedBox(height: AppSizes.paddingLG),
 

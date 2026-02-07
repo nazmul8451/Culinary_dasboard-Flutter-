@@ -6,6 +6,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
 import '../../services/order_service.dart';
 import '../../services/subscription_service.dart';
+import '../../core/utils/animations.dart';
 
 class FinancialScreen extends StatelessWidget {
   const FinancialScreen({super.key});
@@ -22,7 +23,7 @@ class FinancialScreen extends StatelessWidget {
         final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
 
         // Adjust childAspectRatio based on columns
-        final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.4 : 1.3);
+        final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8);
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(
@@ -39,7 +40,7 @@ class FinancialScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
-              ),
+              ).animateFadeInUp(),
               const SizedBox(height: AppSizes.paddingSM),
               Text(
                 'Monitor earnings, escrow, and payouts',
@@ -47,7 +48,7 @@ class FinancialScreen extends StatelessWidget {
                   fontSize: isMobile ? 12 : 14,
                   color: AppColors.textSecondary,
                 ),
-              ),
+              ).animateFadeInUp(delay: 100),
               const SizedBox(height: AppSizes.paddingXL),
 
               // Revenue Stats
@@ -76,7 +77,7 @@ class FinancialScreen extends StatelessWidget {
                         icon: Icons.attach_money,
                         color: AppColors.success,
                         subtitle: 'Funds cleared',
-                      ),
+                      ).animateStaggered(0),
                       StatCard(
                         title: 'Escrow Held',
                         value:
@@ -84,7 +85,7 @@ class FinancialScreen extends StatelessWidget {
                         icon: Icons.account_balance_wallet,
                         color: AppColors.warning,
                         subtitle: 'Awaiting delivery',
-                      ),
+                      ).animateStaggered(1),
                       StatCard(
                         title: 'Monthly Subs',
                         value:
@@ -92,14 +93,14 @@ class FinancialScreen extends StatelessWidget {
                         icon: Icons.card_membership,
                         color: AppColors.primary,
                         subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
-                      ),
+                      ).animateStaggered(2),
                       StatCard(
                         title: 'Failed Payments',
                         value: '${stats['failedCount'] ?? 0}',
                         icon: Icons.warning_amber_rounded,
                         color: AppColors.error,
                         subtitle: 'Past Due Subs',
-                      ),
+                      ).animateStaggered(3),
                     ],
                   );
                 },
@@ -120,9 +121,14 @@ class FinancialScreen extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 2, child: _buildRevenueChart()),
+                    Expanded(
+                      flex: 2,
+                      child: _buildRevenueChart().animateFadeInUp(delay: 200),
+                    ),
                     const SizedBox(width: AppSizes.paddingMD),
-                    Expanded(child: _buildEscrowCard()),
+                    Expanded(
+                      child: _buildEscrowCard().animateSlideInRight(delay: 300),
+                    ),
                   ],
                 ),
 
@@ -154,10 +160,21 @@ class FinancialScreen extends StatelessWidget {
   }
 
   Widget _buildSubscriptionsCard(bool isSmallScreen) {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),
@@ -242,10 +259,21 @@ class FinancialScreen extends StatelessWidget {
   }
 
   Widget _buildRevenueChart() {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),
@@ -355,10 +383,21 @@ class FinancialScreen extends StatelessWidget {
   }
 
   Widget _buildEscrowCard() {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),
@@ -460,10 +499,21 @@ class FinancialScreen extends StatelessWidget {
   }
 
   Widget _buildPayoutsCard(bool isSmallScreen) {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),

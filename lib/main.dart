@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'controllers/auth_controller.dart';
 import 'firebase_options.dart';
 import 'services/realtime_database_service.dart';
+import 'controllers/dashboard_controller.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/layout/dashboard_layout.dart';
 
@@ -16,6 +17,7 @@ void main() async {
 
   // Initialize GetX controllers
   Get.put(AuthController());
+  Get.put(DashboardController());
 
   runApp(const MyApp());
 }

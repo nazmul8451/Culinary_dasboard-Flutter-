@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
@@ -7,6 +8,9 @@ import '../../models/user_model.dart';
 import '../../models/order_model.dart';
 import '../../services/user_service.dart';
 import '../../services/order_service.dart';
+import '../../controllers/dashboard_controller.dart';
+import '../../widgets/order_details_dialog.dart';
+import '../../core/utils/animations.dart';
 
 class OverviewScreen extends StatelessWidget {
   const OverviewScreen({super.key});
@@ -24,14 +28,13 @@ class OverviewScreen extends StatelessWidget {
 
         // Adjust childAspectRatio based on columns
         // Decreasing ratio makes cards taller to prevent overflow
-        final childAspectRatio = isMobile ? 2.0 : (isNarrow ? 1.4 : 1.3);
+        final childAspectRatio = isMobile ? 2.0 : (isNarrow ? 1.7 : 1.8);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSizes.paddingLG),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Page Title
               Text(
                 'Dashboard Overview',
                 style: GoogleFonts.inter(
@@ -39,7 +42,7 @@ class OverviewScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
-              ),
+              ).animateFadeInUp(),
               const SizedBox(height: AppSizes.paddingSM),
               Text(
                 'Welcome back! Here\'s what\'s happening with your platform.',
@@ -47,7 +50,7 @@ class OverviewScreen extends StatelessWidget {
                   fontSize: isMobile ? 12 : 14,
                   color: AppColors.textSecondary,
                 ),
-              ),
+              ).animateFadeInUp(delay: 100),
               const SizedBox(height: AppSizes.paddingXL),
 
               // User Statistics Cards
@@ -72,25 +75,25 @@ class OverviewScreen extends StatelessWidget {
                         icon: Icons.people,
                         color: AppColors.primary,
                         percentageChange: 12.5,
-                      ),
+                      ).animateStaggered(0),
                       StatCard(
                         title: 'Buyers',
                         value: stats['buyers'].toString(),
                         icon: Icons.shopping_cart,
                         color: AppColors.secondary,
-                      ),
+                      ).animateStaggered(1),
                       StatCard(
                         title: 'Sellers',
                         value: stats['sellers'].toString(),
                         icon: Icons.store,
                         color: AppColors.success,
-                      ),
+                      ).animateStaggered(2),
                       StatCard(
                         title: 'Couriers',
                         value: stats['couriers'].toString(),
                         icon: Icons.delivery_dining,
                         color: AppColors.warning,
-                      ),
+                      ).animateStaggered(3),
                     ],
                   );
                 },
@@ -120,25 +123,25 @@ class OverviewScreen extends StatelessWidget {
                         icon: Icons.shopping_bag,
                         color: AppColors.primary,
                         percentageChange: 8.3,
-                      ),
+                      ).animateStaggered(0),
                       StatCard(
                         title: 'Pending',
                         value: stats['pending'].toString(),
                         icon: Icons.pending,
                         color: AppColors.warning,
-                      ),
+                      ).animateStaggered(1),
                       StatCard(
                         title: 'On The Way',
                         value: stats['onTheWay'].toString(),
                         icon: Icons.local_shipping,
                         color: AppColors.info,
-                      ),
+                      ).animateStaggered(2),
                       StatCard(
                         title: 'Delivered',
                         value: stats['delivered'].toString(),
                         icon: Icons.check_circle,
                         color: AppColors.success,
-                      ),
+                      ).animateStaggered(3),
                     ],
                   );
                 },
@@ -159,9 +162,16 @@ class OverviewScreen extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _buildRecentOrdersCard()),
+                    Expanded(
+                      child: _buildRecentOrdersCard().animateSlideInRight(
+                        delay: 400,
+                      ),
+                    ),
                     const SizedBox(width: AppSizes.paddingMD),
-                    Expanded(child: _buildPendingVerificationsCard()),
+                    Expanded(
+                      child: _buildPendingVerificationsCard()
+                          .animateSlideInRight(delay: 500),
+                    ),
                   ],
                 ),
             ],
@@ -172,10 +182,21 @@ class OverviewScreen extends StatelessWidget {
   }
 
   Widget _buildRecentOrdersCard() {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),
@@ -194,7 +215,8 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () =>
+                      Get.find<DashboardController>().changeRoute('/orders'),
                   child: Text(
                     'View All',
                     style: GoogleFonts.inter(
@@ -254,6 +276,10 @@ class OverviewScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final order = orders[index];
                     return ListTile(
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (context) => OrderDetailsDialog(order: order),
+                      ),
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         backgroundColor: _getStatusColor(
@@ -307,10 +333,21 @@ class OverviewScreen extends StatelessWidget {
   }
 
   Widget _buildPendingVerificationsCard() {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLG),

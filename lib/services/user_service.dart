@@ -326,4 +326,27 @@ class UserService {
       return {'total': 0, 'buyers': 0, 'sellers': 0, 'couriers': 0};
     }
   }
+
+  /// Update FCM token for a user
+  static Future<void> updateFcmToken(String userId, String token) async {
+    try {
+      final nodes = ['buyer', 'seller', 'courier'];
+      for (final node in nodes) {
+        final nodeRef = RealtimeDatabaseService.ref('$node/$userId');
+        final snapshot = await nodeRef.get();
+        if (snapshot.exists) {
+          await nodeRef.update({
+            'fcmToken': token,
+            'fcmTokenUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+          });
+          print('✅ Updated FCM token for user $userId in $node node');
+          return;
+        }
+      }
+      print('⚠️ User $userId not found for FCM token update');
+    } catch (e) {
+      print('❌ Error updating FCM token: $e');
+      rethrow;
+    }
+  }
 }

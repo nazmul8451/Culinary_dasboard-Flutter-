@@ -25,6 +25,8 @@ class UserModel {
   final double? minShippingFee;
   final Map<String, dynamic>? shippingRules;
   final Map<String, dynamic>? metadata;
+  final String? fcmToken;
+  final DateTime? fcmTokenUpdatedAt;
 
   UserModel({
     required this.id,
@@ -45,6 +47,8 @@ class UserModel {
     this.minShippingFee,
     this.shippingRules,
     this.metadata,
+    this.fcmToken,
+    this.fcmTokenUpdatedAt,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -76,6 +80,8 @@ class UserModel {
           ? Map<String, dynamic>.from(data['shippingRules'] as Map)
           : null,
       metadata: data['metadata'],
+      fcmToken: data['fcmToken'],
+      fcmTokenUpdatedAt: (data['fcmTokenUpdatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -112,6 +118,11 @@ class UserModel {
       metadata: data['metadata'] != null
           ? Map<String, dynamic>.from(data['metadata'] as Map)
           : null,
+      fcmToken: data['fcmToken']?.toString(),
+      fcmTokenUpdatedAt: _parseDateTime(
+        data['fcmTokenUpdatedAt'],
+        isOptional: true,
+      ),
     );
   }
 
@@ -136,6 +147,10 @@ class UserModel {
       'minShippingFee': minShippingFee,
       'shippingRules': shippingRules,
       'metadata': metadata,
+      'fcmToken': fcmToken,
+      'fcmTokenUpdatedAt': fcmTokenUpdatedAt != null
+          ? Timestamp.fromDate(fcmTokenUpdatedAt!)
+          : null,
     };
   }
 
@@ -193,6 +208,8 @@ class UserModel {
     double? minShippingFee,
     Map<String, dynamic>? shippingRules,
     Map<String, dynamic>? metadata,
+    String? fcmToken,
+    DateTime? fcmTokenUpdatedAt,
   }) {
     return UserModel(
       id: id,
@@ -214,6 +231,8 @@ class UserModel {
       minShippingFee: minShippingFee ?? this.minShippingFee,
       shippingRules: shippingRules ?? this.shippingRules,
       metadata: metadata ?? this.metadata,
+      fcmToken: fcmToken ?? this.fcmToken,
+      fcmTokenUpdatedAt: fcmTokenUpdatedAt ?? this.fcmTokenUpdatedAt,
     );
   }
 }

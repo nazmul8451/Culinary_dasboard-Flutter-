@@ -6,6 +6,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
+import '../../core/utils/animations.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -58,7 +59,7 @@ class _UsersScreenState extends State<UsersScreen>
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
-              ),
+              ).animateFadeInUp(),
               const SizedBox(height: AppSizes.paddingSM),
               Text(
                 'Manage buyers, sellers, and couriers',
@@ -66,7 +67,7 @@ class _UsersScreenState extends State<UsersScreen>
                   fontSize: isMobile ? 12 : 14,
                   color: AppColors.textSecondary,
                 ),
-              ),
+              ).animateFadeInUp(delay: 100),
               const SizedBox(height: AppSizes.paddingLG),
 
               // Search Bar
@@ -126,7 +127,7 @@ class _UsersScreenState extends State<UsersScreen>
                     _buildUserTable(UserType.seller),
                     _buildUserTable(UserType.courier),
                   ],
-                ),
+                ).animateFadeInUp(delay: 200),
               ),
             ],
           ),
@@ -138,10 +139,21 @@ class _UsersScreenState extends State<UsersScreen>
   Widget _buildUserTable(UserType? filterType, {bool onlyPending = false}) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: StreamBuilder<List<UserModel>>(
         stream: filterType == null
@@ -256,8 +268,23 @@ class _UsersScreenState extends State<UsersScreen>
   }
 
   Widget _buildUserCard(UserModel user) {
-    return Card(
+    return Container(
       margin: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingMD),
         child: Column(

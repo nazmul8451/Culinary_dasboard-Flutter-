@@ -129,10 +129,21 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
     return SingleChildScrollView(
       child: Column(
         children: [
-          Card(
-            elevation: AppSizes.cardElevation,
-            shape: RoundedRectangleBorder(
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+              border: Border.all(
+                color: AppColors.border.withOpacity(0.5),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppSizes.paddingLG),
@@ -240,7 +251,22 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
             ),
           ),
           const SizedBox(height: AppSizes.paddingLG),
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+              border: Border.all(
+                color: AppColors.border.withOpacity(0.5),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.cardShadow,
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             child: Padding(
               padding: const EdgeInsets.all(AppSizes.paddingLG),
               child: Column(

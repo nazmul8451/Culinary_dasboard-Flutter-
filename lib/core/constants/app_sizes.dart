@@ -10,8 +10,8 @@ class AppSizes {
   // Border Radius
   static const double radiusXS = 4.0;
   static const double radiusSM = 8.0;
-  static const double radiusMD = 12.0;
-  static const double radiusLG = 16.0;
+  static const double radiusMD = 16.0; // More rounded
+  static const double radiusLG = 24.0;
   static const double radiusXL = 24.0;
 
   // Icon Sizes
@@ -23,7 +23,7 @@ class AppSizes {
 
   // Card Sizes
   static const double cardHeight = 120.0;
-  static const double cardElevation = 2.0;
+  static const double cardElevation = 0.0; // Use custom shadow instead
 
   // Sidebar
   static const double sidebarWidth = 250.0;

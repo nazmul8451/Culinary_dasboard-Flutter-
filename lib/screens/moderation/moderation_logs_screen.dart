@@ -58,9 +58,26 @@ class ModerationLogsScreen extends StatelessWidget {
                       itemCount: logs.length,
                       itemBuilder: (context, index) {
                         final log = logs[index];
-                        return Card(
+                        return Container(
                           margin: const EdgeInsets.only(
                             bottom: AppSizes.paddingMD,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMD,
+                            ),
+                            border: Border.all(
+                              color: AppColors.border.withOpacity(0.5),
+                              width: 0.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.cardShadow,
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: ListTile(
                             leading: _buildLogIcon(log.type),

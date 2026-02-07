@@ -43,6 +43,7 @@ dependencies:
   flutter_admin_scaffold: ^1.4.0
   data_table_2: ^2.7.2
   fl_chart: ^1.1.1
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:

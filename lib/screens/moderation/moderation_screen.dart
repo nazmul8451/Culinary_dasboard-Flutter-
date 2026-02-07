@@ -103,10 +103,21 @@ class _ModerationScreenState extends State<ModerationScreen>
   }
 
   Widget _buildProductApprovals(bool isSmallScreen, double screenWidth) {
-    return Card(
-      elevation: AppSizes.cardElevation,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -164,11 +175,21 @@ class _ModerationScreenState extends State<ModerationScreen>
 
   Widget _buildProductCard(DocumentSnapshot product) {
     final data = product.data() as Map<String, dynamic>;
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,9 +374,23 @@ class _ModerationScreenState extends State<ModerationScreen>
 
   Widget _buildReportCard(DocumentSnapshot report) {
     final data = report.data() as Map<String, dynamic>;
-
-    return Card(
-      margin: EdgeInsets.zero,
+    return Container(
+      margin: EdgeInsets.all(AppSizes.paddingSM),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+        border: Border.all(
+          color: AppColors.border.withOpacity(0.5),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingMD),
         child: Column(
