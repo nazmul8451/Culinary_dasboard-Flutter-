@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
 import '../core/constants/app_colors.dart';
+import '../services/user_service.dart';
 import '../services/order_service.dart';
 
 class OrderDetailsDialog extends StatelessWidget {
@@ -21,106 +22,144 @@ class OrderDetailsDialog extends StatelessWidget {
         ? order.totalAmount
         : calculatedTotal;
 
-    return AlertDialog(
-      title: Text('Order Details', style: GoogleFonts.inter()),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Order ID', order.id),
-            _buildDetailRow(
-              'Customer',
-              '${order.buyerName} (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
-            ),
-            _buildDetailRow(
-              'Seller',
-              '${order.sellerName} (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
-            ),
-            if (order.courierName != null)
-              _buildDetailRow(
-                'Courier',
-                '${order.courierName} (${order.courierId?.length != null && order.courierId!.length > 8 ? order.courierId!.substring(0, 8) : order.courierId ?? ''})',
-              ),
+    return FutureBuilder<Map<String, String?>>(
+      future:
+          Future.wait([
+            order.buyerName.isEmpty
+                ? UserService.getUserById(order.buyerId)
+                : Future.value(null),
+            order.sellerName.isEmpty
+                ? UserService.getUserById(order.sellerId)
+                : Future.value(null),
+          ]).then(
+            (users) => {
+              'buyerName':
+                  users[0]?.name ??
+                  (order.buyerName.isEmpty ? null : order.buyerName),
+              'sellerName':
+                  users[1]?.name ??
+                  (order.sellerName.isEmpty ? null : order.sellerName),
+            },
+          ),
+      builder: (context, snapshot) {
+        final buyerName = snapshot.data?['buyerName'] ?? 'Loading...';
+        final sellerName = snapshot.data?['sellerName'] ?? 'Loading...';
 
-            // Product Items Section
-            if (order.items.isNotEmpty) ...[
-              const Divider(),
-              Text(
-                'ORDERED ITEMS',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
+        return AlertDialog(
+          title: Text('Order Details', style: GoogleFonts.inter()),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('Order ID', order.id),
+                _buildDetailRow(
+                  'Customer',
+                  '$buyerName (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
                 ),
-              ),
-              const SizedBox(height: 8),
-              ...order.items.map((item) => _buildItemRow(item)),
-              const Divider(),
-            ],
+                _buildDetailRow(
+                  'Seller',
+                  '$sellerName (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
+                ),
+                if (order.courierName != null)
+                  _buildDetailRow(
+                    'Courier',
+                    '${order.courierName} (${order.courierId?.length != null && order.courierId!.length > 8 ? order.courierId!.substring(0, 8) : order.courierId ?? ''})',
+                  ),
 
-            _buildDetailRow('Subtotal', '\$${displayTotal.toStringAsFixed(2)}'),
-            _buildDetailRow(
-              'Delivery Fee',
-              '\$${order.deliveryFee.toStringAsFixed(2)}',
-            ),
-            _buildDetailRow(
-              'Grand Total',
-              '\$${order.grandTotal.toStringAsFixed(2)}',
-              isBold: true,
-            ),
-            const SizedBox(height: 8),
-            _buildDetailRow('Status', _getStatusText(order.status)),
-            _buildDetailRow('Escrow', order.escrowStatus.name.toUpperCase()),
-            _buildDetailRow('Address', order.deliveryAddress),
-            _buildDetailRow('Date', _formatDate(order.createdAt)),
-            if (order.trackingNumber != null) ...[
-              _buildDetailRow('Tracking #', order.trackingNumber!),
-              _buildDetailRow('Provider', order.trackingProvider ?? 'Unknown'),
-            ],
-            if (order.notes != null) _buildDetailRow('Notes', order.notes!),
-            if (order.hasDispute) ...[
-              const Divider(),
-              Text(
-                'DISPUTE INFORMATION',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.error,
+                // Product Items Section
+                if (order.items.isNotEmpty) ...[
+                  const Divider(),
+                  Text(
+                    'ORDERED ITEMS',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...order.items.map((item) => _buildItemRow(item)),
+                  const Divider(),
+                ],
+
+                _buildDetailRow(
+                  'Subtotal',
+                  '\$${displayTotal.toStringAsFixed(2)}',
                 ),
+                _buildDetailRow(
+                  'Delivery Fee',
+                  '\$${order.deliveryFee.toStringAsFixed(2)}',
+                ),
+                _buildDetailRow(
+                  'Grand Total',
+                  '\$${order.grandTotal.toStringAsFixed(2)}',
+                  isBold: true,
+                ),
+                const SizedBox(height: 8),
+                _buildDetailRow('Status', _getStatusText(order.status)),
+                _buildDetailRow(
+                  'Escrow',
+                  order.escrowStatus.name.toUpperCase(),
+                ),
+                _buildDetailRow('Address', order.deliveryAddress),
+                _buildDetailRow('Date', _formatDate(order.createdAt)),
+                if (order.trackingNumber != null) ...[
+                  _buildDetailRow('Tracking #', order.trackingNumber!),
+                  _buildDetailRow(
+                    'Provider',
+                    order.trackingProvider ?? 'Unknown',
+                  ),
+                ],
+                if (order.notes != null) _buildDetailRow('Notes', order.notes!),
+                if (order.hasDispute) ...[
+                  const Divider(),
+                  Text(
+                    'DISPUTE INFORMATION',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.error,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    order.disputeDetails ?? 'No details provided.',
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            if (order.hasDispute)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showResolveDisputeDialog(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                ),
+                child: const Text('Resolve Dispute'),
               ),
-              const SizedBox(height: 8),
-              Text(
-                order.disputeDetails ?? 'No details provided.',
-                style: GoogleFonts.inter(fontSize: 13),
+            if (order.escrowStatus == EscrowStatus.held && !order.hasDispute)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _confirmReleaseEscrow(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                ),
+                child: const Text('Release Escrow'),
               ),
-            ],
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
           ],
-        ),
-      ),
-      actions: [
-        if (order.hasDispute)
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showResolveDisputeDialog(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Resolve Dispute'),
-          ),
-        if (order.escrowStatus == EscrowStatus.held && !order.hasDispute)
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _confirmReleaseEscrow(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            child: const Text('Release Escrow'),
-          ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
+        );
+      },
     );
   }
 

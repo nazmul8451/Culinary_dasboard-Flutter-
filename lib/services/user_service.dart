@@ -1,14 +1,9 @@
 import 'dart:async';
-import 'package:firebase_database/firebase_database.dart';
 import '../models/user_model.dart';
 import 'realtime_database_service.dart';
 
 /// Service for managing user data from Realtime Database
 class UserService {
-  static final DatabaseReference _usersRef = RealtimeDatabaseService.ref(
-    'users',
-  );
-
   /// Get all users as a stream (combines buyer, seller, courier)
   static Stream<List<UserModel>> getAllUsers() {
     print('🔍 UserService.getAllUsers - Initializing combined stream');
@@ -113,16 +108,24 @@ class UserService {
   /// Get user by ID
   static Future<UserModel?> getUserById(String userId) async {
     try {
-      final snapshot = await _usersRef.child(userId).get();
-      if (snapshot.exists && snapshot.value != null) {
-        return UserModel.fromRealtimeDatabase(
-          userId,
-          Map<dynamic, dynamic>.from(snapshot.value as Map),
-        );
+      final nodes = ['buyer', 'seller', 'courier'];
+      for (final node in nodes) {
+        final nodeRef = RealtimeDatabaseService.ref('$node/$userId');
+        final snapshot = await nodeRef.get();
+        if (snapshot.exists && snapshot.value != null) {
+          final data = Map<dynamic, dynamic>.from(snapshot.value as Map);
+          // Determine UserType based on node
+          UserType type = UserType.buyer;
+          if (node == 'seller') type = UserType.seller;
+          if (node == 'courier') type = UserType.courier;
+          data['userType'] = type.name;
+
+          return UserModel.fromRealtimeDatabase(userId, data);
+        }
       }
       return null;
     } catch (e) {
-      print('Error getting user: $e');
+      print('Error getting user by ID: $e');
       return null;
     }
   }
