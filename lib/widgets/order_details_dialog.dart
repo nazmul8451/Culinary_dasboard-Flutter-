@@ -4,6 +4,7 @@ import '../models/order_model.dart';
 import '../core/constants/app_colors.dart';
 import '../services/user_service.dart';
 import '../services/order_service.dart';
+import 'shimmer_loading.dart';
 
 class OrderDetailsDialog extends StatelessWidget {
   final OrderModel order;
@@ -42,8 +43,9 @@ class OrderDetailsDialog extends StatelessWidget {
             },
           ),
       builder: (context, snapshot) {
-        final buyerName = snapshot.data?['buyerName'] ?? 'Loading...';
-        final sellerName = snapshot.data?['sellerName'] ?? 'Loading...';
+        final buyerName = snapshot.data?['buyerName'];
+        final sellerName = snapshot.data?['sellerName'];
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
 
         return AlertDialog(
           title: Text('Order Details', style: GoogleFonts.inter()),
@@ -55,11 +57,15 @@ class OrderDetailsDialog extends StatelessWidget {
                 _buildDetailRow('Order ID', order.id),
                 _buildDetailRow(
                   'Customer',
-                  '$buyerName (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
+                  isLoading
+                      ? ShimmerLoading.rounded(height: 15, width: 150)
+                      : '$buyerName (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
                 ),
                 _buildDetailRow(
                   'Seller',
-                  '$sellerName (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
+                  isLoading
+                      ? ShimmerLoading.rounded(height: 15, width: 150)
+                      : '$sellerName (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
                 ),
                 if (order.courierName != null)
                   _buildDetailRow(
@@ -163,7 +169,7 @@ class OrderDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isBold = false}) {
+  Widget _buildDetailRow(String label, dynamic value, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -180,13 +186,15 @@ class OrderDetailsDialog extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
+            child: value is Widget
+                ? value
+                : Text(
+                    value.toString(),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
           ),
         ],
       ),

@@ -8,6 +8,8 @@ import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
 import '../../core/utils/animations.dart';
 
+import '../../widgets/shimmer_loading.dart';
+
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
 
@@ -160,107 +162,133 @@ class _UsersScreenState extends State<UsersScreen>
             ? UserService.getAllUsers()
             : UserService.getUsersByType(filterType),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final isLoading = snapshot.connectionState == ConnectionState.waiting;
+          final usersData = snapshot.data ?? [];
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: AppColors.textHint,
-                  ),
-                  const SizedBox(height: AppSizes.paddingMD),
-                  Text(
-                    'No users found',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          var users = snapshot.data!.where((user) {
-            final matchesSearch =
-                _searchQuery.isEmpty ||
-                user.name.toLowerCase().contains(_searchQuery) ||
-                user.email.toLowerCase().contains(_searchQuery);
-            final matchesPending =
-                !onlyPending ||
-                user.verificationStatus == VerificationStatus.pending;
-            return matchesSearch && matchesPending;
-          }).toList();
-
-          if (isSmallScreen) {
-            // Mobile List View
-            return ListView.separated(
+          return ShimmerSwitcher(
+            isLoading: isLoading,
+            skeleton: ListView.separated(
               padding: const EdgeInsets.all(AppSizes.paddingMD),
-              itemCount: users.length,
-              separatorBuilder: (context, index) => const Divider(),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return _buildUserCard(user);
-              },
-            );
-          }
+              itemCount: 10,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  ShimmerLoading.rounded(height: isSmallScreen ? 150 : 50),
+            ),
+            child: usersData.isEmpty
+                ? Center(
+                    key: const ValueKey('empty'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        Text(
+                          'No users found',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Builder(
+                    key: const ValueKey('list'),
+                    builder: (context) {
+                      final filteredUsers = usersData.where((user) {
+                        final matchesSearch =
+                            _searchQuery.isEmpty ||
+                            user.name.toLowerCase().contains(_searchQuery) ||
+                            user.email.toLowerCase().contains(_searchQuery);
+                        final matchesPending =
+                            !onlyPending ||
+                            user.verificationStatus ==
+                                VerificationStatus.pending;
+                        return matchesSearch && matchesPending;
+                      }).toList();
 
-          // Desktop Data Table
-          return DataTable2(
-            columnSpacing: 12,
-            horizontalMargin: 12,
-            minWidth: 900,
-            columns: [
-              DataColumn2(
-                label: Text(
-                  'Name',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.L,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Email',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.L,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Type',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Status',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Verification',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Actions',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.M,
-              ),
-            ],
-            rows: users.map((user) => _buildUserRow(user)).toList(),
+                      if (isSmallScreen) {
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppSizes.paddingMD),
+                          itemCount: filteredUsers.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) =>
+                              _buildUserCard(filteredUsers[index]),
+                        );
+                      }
+
+                      return DataTable2(
+                        columnSpacing: 12,
+                        horizontalMargin: 12,
+                        minWidth: 900,
+                        columns: [
+                          DataColumn2(
+                            label: Text(
+                              'Name',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.L,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Email',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.L,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Type',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Status',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Verification',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Actions',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.M,
+                          ),
+                        ],
+                        rows: filteredUsers
+                            .map((user) => _buildUserRow(user))
+                            .toList(),
+                      );
+                    },
+                  ),
           );
         },
       ),

@@ -7,6 +7,8 @@ import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../widgets/order_details_dialog.dart';
 
+import '../../widgets/shimmer_loading.dart';
+
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
@@ -154,110 +156,144 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ? OrderService.getAllOrders()
             : OrderService.getOrdersByStatus(_selectedStatus!),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final isLoading = snapshot.connectionState == ConnectionState.waiting;
+          final orders = snapshot.data ?? [];
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.shopping_bag_outlined,
-                    size: 64,
-                    color: AppColors.textHint,
-                  ),
-                  const SizedBox(height: AppSizes.paddingMD),
-                  Text(
-                    'No orders found',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          var orders = snapshot.data!
-              .where(
-                (order) =>
-                    _searchQuery.isEmpty ||
-                    order.buyerName.toLowerCase().contains(_searchQuery) ||
-                    order.sellerName.toLowerCase().contains(_searchQuery) ||
-                    order.id.toLowerCase().contains(_searchQuery),
-              )
-              .toList();
-
-          if (isSmallScreen) {
-            return ListView.separated(
+          return ShimmerSwitcher(
+            isLoading: isLoading,
+            skeleton: ListView.separated(
               padding: const EdgeInsets.all(AppSizes.paddingMD),
-              itemCount: orders.length,
-              separatorBuilder: (context, index) => const Divider(),
-              itemBuilder: (context, index) {
-                return _buildOrderCard(orders[index]);
-              },
-            );
-          }
+              itemCount: 10,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  ShimmerLoading.rounded(height: isSmallScreen ? 180 : 50),
+            ),
+            child: orders.isEmpty
+                ? Center(
+                    key: const ValueKey('empty'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        Text(
+                          'No orders found',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Builder(
+                    key: const ValueKey('list'),
+                    builder: (context) {
+                      final filteredOrders = orders
+                          .where(
+                            (order) =>
+                                _searchQuery.isEmpty ||
+                                order.buyerName.toLowerCase().contains(
+                                  _searchQuery,
+                                ) ||
+                                order.sellerName.toLowerCase().contains(
+                                  _searchQuery,
+                                ) ||
+                                order.id.toLowerCase().contains(_searchQuery),
+                          )
+                          .toList();
 
-          return DataTable2(
-            columnSpacing: 12,
-            horizontalMargin: 12,
-            minWidth: 1000,
-            columns: [
-              DataColumn2(
-                label: Text(
-                  'Order ID',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Customer',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.L,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Seller',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.L,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Amount',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Status',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.M,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Date',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.M,
-              ),
-              DataColumn2(
-                label: Text(
-                  'Actions',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                size: ColumnSize.S,
-              ),
-            ],
-            rows: orders.map((order) => _buildOrderRow(order)).toList(),
+                      if (isSmallScreen) {
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppSizes.paddingMD),
+                          itemCount: filteredOrders.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) =>
+                              _buildOrderCard(filteredOrders[index]),
+                        );
+                      }
+
+                      return DataTable2(
+                        columnSpacing: 12,
+                        horizontalMargin: 12,
+                        minWidth: 800,
+                        columns: [
+                          DataColumn2(
+                            label: Text(
+                              'Order ID',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Customer',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.M,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Seller',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.M,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Amount',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Status',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Date',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                          DataColumn2(
+                            label: Text(
+                              'Actions',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            size: ColumnSize.S,
+                          ),
+                        ],
+                        rows: filteredOrders
+                            .map((order) => _buildOrderRow(order))
+                            .toList(),
+                      );
+                    },
+                  ),
           );
         },
       ),

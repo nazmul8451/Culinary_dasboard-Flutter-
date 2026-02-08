@@ -12,6 +12,8 @@ import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../models/order_model.dart';
 
+import '../../widgets/shimmer_loading.dart';
+
 class FinancialScreen extends StatelessWidget {
   const FinancialScreen({super.key});
 
@@ -37,137 +39,142 @@ class FinancialScreen extends StatelessWidget {
                 },
               ),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: LinearProgressIndicator());
-            }
+            final isLoading =
+                snapshot.connectionState == ConnectionState.waiting;
             final stats = snapshot.data ?? {};
             final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
             final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8);
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(
-                isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Text(
-                    'Financial Dashboard',
-                    style: GoogleFonts.inter(
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ).animateFadeInUp(),
-                  const SizedBox(height: AppSizes.paddingSM),
-                  Text(
-                    'Monitor earnings, escrow, and payouts',
-                    style: GoogleFonts.inter(
-                      fontSize: isMobile ? 12 : 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ).animateFadeInUp(delay: 100),
-                  const SizedBox(height: AppSizes.paddingXL),
+            return ShimmerSwitcher(
+              isLoading: isLoading,
+              skeleton: _buildShimmerLoading(isMobile, isNarrow),
+              child: SingleChildScrollView(
+                key: const ValueKey('content'),
+                padding: EdgeInsets.all(
+                  isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Text(
+                      'Financial Dashboard',
+                      style: GoogleFonts.inter(
+                        fontSize: isMobile ? 24 : 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ).animateFadeInUp(),
+                    const SizedBox(height: AppSizes.paddingSM),
+                    Text(
+                      'Monitor earnings, escrow, and payouts',
+                      style: GoogleFonts.inter(
+                        fontSize: isMobile ? 12 : 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ).animateFadeInUp(delay: 100),
+                    const SizedBox(height: AppSizes.paddingXL),
 
-                  // Revenue Stats
-                  GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: AppSizes.paddingMD,
-                    mainAxisSpacing: AppSizes.paddingMD,
-                    childAspectRatio: childAspectRatio,
-                    children: [
-                      StatCard(
-                        title: 'Released Revenue',
-                        value:
-                            '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
-                        icon: Icons.attach_money,
-                        color: AppColors.success,
-                        subtitle: 'Funds cleared',
-                      ).animateStaggered(0),
-                      StatCard(
-                        title: 'Escrow Held',
-                        value:
-                            '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
-                        icon: Icons.account_balance_wallet,
-                        color: AppColors.warning,
-                        subtitle: 'Awaiting delivery',
-                      ).animateStaggered(1),
-                      StatCard(
-                        title: 'Monthly Subs',
-                        value:
-                            '\$${(stats['monthlyRevenue'] ?? 0).toStringAsFixed(2)}',
-                        icon: Icons.card_membership,
-                        color: AppColors.primary,
-                        subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
-                      ).animateStaggered(2),
-                      StatCard(
-                        title: 'Admin Commission',
-                        value:
-                            '\$${(stats['adminCommission'] ?? 0).toStringAsFixed(2)}',
-                        icon: Icons.account_balance_rounded,
-                        color: AppColors.error,
-                        subtitle: '10% order cut',
-                      ).animateStaggered(3),
-                    ],
-                  ),
-
-                  const SizedBox(height: AppSizes.paddingXL),
-
-                  // Charts Row
-                  if (isNarrow)
-                    Column(
+                    // Revenue Stats
+                    GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: childAspectRatio,
                       children: [
-                        _buildRevenueChart(stats['chartData'] ?? []),
-                        const SizedBox(height: AppSizes.paddingMD),
-                        _buildEscrowCard(stats),
-                      ],
-                    )
-                  else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: _buildRevenueChart(
-                            stats['chartData'] ?? [],
-                          ).animateFadeInUp(delay: 200),
-                        ),
-                        const SizedBox(width: AppSizes.paddingMD),
-                        Expanded(
-                          child: _buildEscrowCard(
-                            stats,
-                          ).animateSlideInRight(delay: 300),
-                        ),
+                        StatCard(
+                          title: 'Released Revenue',
+                          value:
+                              '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
+                          icon: Icons.attach_money,
+                          color: AppColors.success,
+                          subtitle: 'Funds cleared',
+                        ).animateStaggered(0),
+                        StatCard(
+                          title: 'Escrow Held',
+                          value:
+                              '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
+                          icon: Icons.account_balance_wallet,
+                          color: AppColors.warning,
+                          subtitle: 'Awaiting delivery',
+                        ).animateStaggered(1),
+                        StatCard(
+                          title: 'Monthly Subs',
+                          value:
+                              '\$${(stats['monthlyRevenue'] ?? 0).toStringAsFixed(2)}',
+                          icon: Icons.card_membership,
+                          color: AppColors.primary,
+                          subtitle:
+                              '${stats['activeCount'] ?? 0} Active Vendors',
+                        ).animateStaggered(2),
+                        StatCard(
+                          title: 'Admin Commission',
+                          value:
+                              '\$${(stats['adminCommission'] ?? 0).toStringAsFixed(2)}',
+                          icon: Icons.account_balance_rounded,
+                          color: AppColors.error,
+                          subtitle: '10% order cut',
+                        ).animateStaggered(3),
                       ],
                     ),
 
-                  const SizedBox(height: AppSizes.paddingXL),
+                    const SizedBox(height: AppSizes.paddingXL),
 
-                  // Payouts & Subscriptions Section
-                  if (isNarrow)
-                    Column(
-                      children: [
-                        _buildPayoutsCard(isMobile),
-                        const SizedBox(height: AppSizes.paddingMD),
-                        _buildSubscriptionsCard(isMobile),
-                      ],
-                    )
-                  else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 1, child: _buildPayoutsCard(isMobile)),
-                        const SizedBox(width: AppSizes.paddingMD),
-                        Expanded(
-                          flex: 1,
-                          child: _buildSubscriptionsCard(isMobile),
-                        ),
-                      ],
-                    ),
-                ],
+                    // Charts Row
+                    if (isNarrow)
+                      Column(
+                        children: [
+                          _buildRevenueChart(stats['chartData'] ?? []),
+                          const SizedBox(height: AppSizes.paddingMD),
+                          _buildEscrowCard(stats),
+                        ],
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _buildRevenueChart(
+                              stats['chartData'] ?? [],
+                            ).animateFadeInUp(delay: 200),
+                          ),
+                          const SizedBox(width: AppSizes.paddingMD),
+                          Expanded(
+                            child: _buildEscrowCard(
+                              stats,
+                            ).animateSlideInRight(delay: 300),
+                          ),
+                        ],
+                      ),
+
+                    const SizedBox(height: AppSizes.paddingXL),
+
+                    // Payouts & Subscriptions Section
+                    if (isNarrow)
+                      Column(
+                        children: [
+                          _buildPayoutsCard(isMobile),
+                          const SizedBox(height: AppSizes.paddingMD),
+                          _buildSubscriptionsCard(isMobile),
+                        ],
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 1, child: _buildPayoutsCard(isMobile)),
+                          const SizedBox(width: AppSizes.paddingMD),
+                          Expanded(
+                            flex: 1,
+                            child: _buildSubscriptionsCard(isMobile),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -726,5 +733,60 @@ class FinancialScreen extends StatelessWidget {
         }
       }
     }
+  }
+
+  Widget _buildShimmerLoading(bool isMobile, bool isNarrow) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(
+        isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShimmerLoading.rounded(height: 30, width: 250),
+          const SizedBox(height: AppSizes.paddingSM),
+          ShimmerLoading.rounded(height: 15, width: 200),
+          const SizedBox(height: AppSizes.paddingXL),
+          GridView.count(
+            crossAxisCount: isMobile ? 1 : (isNarrow ? 2 : 4),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: AppSizes.paddingMD,
+            mainAxisSpacing: AppSizes.paddingMD,
+            childAspectRatio: isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8),
+            children: List.generate(
+              4,
+              (index) => ShimmerLoading.rounded(height: 100),
+            ),
+          ),
+          const SizedBox(height: AppSizes.paddingXL),
+          if (isNarrow)
+            Column(
+              children: [
+                ShimmerLoading.rounded(height: 300),
+                const SizedBox(height: AppSizes.paddingMD),
+                ShimmerLoading.rounded(height: 300),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(flex: 2, child: ShimmerLoading.rounded(height: 350)),
+                const SizedBox(width: AppSizes.paddingMD),
+                Expanded(child: ShimmerLoading.rounded(height: 350)),
+              ],
+            ),
+          const SizedBox(height: AppSizes.paddingXL),
+          Row(
+            children: [
+              Expanded(child: ShimmerLoading.rounded(height: 400)),
+              if (!isNarrow) const SizedBox(width: AppSizes.paddingMD),
+              if (!isNarrow)
+                Expanded(child: ShimmerLoading.rounded(height: 400)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

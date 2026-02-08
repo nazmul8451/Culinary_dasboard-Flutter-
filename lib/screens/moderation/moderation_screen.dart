@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../models/message_model.dart';
 import '../../services/message_service.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class ModerationScreen extends StatefulWidget {
   const ModerationScreen({super.key});
@@ -127,48 +128,64 @@ class _ModerationScreenState extends State<ModerationScreen>
             .where('status', isEqualTo: 'pending')
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final isLoading = snapshot.connectionState == ConnectionState.waiting;
+          final docs = snapshot.data?.docs ?? [];
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 64,
-                    color: AppColors.textHint,
-                  ),
-                  const SizedBox(height: AppSizes.paddingMD),
-                  Text(
-                    'No pending approvals',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+          return ShimmerSwitcher(
+            isLoading: isLoading,
+            skeleton: GridView.builder(
+              padding: const EdgeInsets.all(AppSizes.paddingMD),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: isSmallScreen ? 1 : (screenWidth < 900 ? 2 : 3),
+                crossAxisSpacing: AppSizes.paddingMD,
+                mainAxisSpacing: AppSizes.paddingMD,
+                childAspectRatio: isSmallScreen
+                    ? 1.2
+                    : (screenWidth < 1200 ? 0.85 : 0.95),
               ),
-            );
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(AppSizes.paddingMD),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isSmallScreen ? 1 : (screenWidth < 900 ? 2 : 3),
-              crossAxisSpacing: AppSizes.paddingMD,
-              mainAxisSpacing: AppSizes.paddingMD,
-              childAspectRatio: isSmallScreen
-                  ? 1.2
-                  : (screenWidth < 1200 ? 0.85 : 0.95),
+              itemCount: 6,
+              itemBuilder: (context, index) =>
+                  ShimmerLoading.rounded(height: 250),
             ),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final product = snapshot.data!.docs[index];
-              return _buildProductCard(product);
-            },
+            child: docs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        Text(
+                          'No pending approvals',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.all(AppSizes.paddingMD),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isSmallScreen
+                          ? 1
+                          : (screenWidth < 900 ? 2 : 3),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: isSmallScreen
+                          ? 1.2
+                          : (screenWidth < 1200 ? 0.85 : 0.95),
+                    ),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final product = docs[index];
+                      return _buildProductCard(product);
+                    },
+                  ),
           );
         },
       ),
@@ -337,37 +354,48 @@ class _ModerationScreenState extends State<ModerationScreen>
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final isLoading = snapshot.connectionState == ConnectionState.waiting;
+          final docs = snapshot.data?.docs ?? [];
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.report_off, size: 64, color: AppColors.textHint),
-                  const SizedBox(height: AppSizes.paddingMD),
-                  Text(
-                    'No reported content',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
+          return ShimmerSwitcher(
+            isLoading: isLoading,
+            skeleton: ListView.separated(
+              padding: const EdgeInsets.all(AppSizes.paddingMD),
+              itemCount: 5,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) =>
+                  ShimmerLoading.rounded(height: 100),
+            ),
+            child: docs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.report_off,
+                          size: 64,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        Text(
+                          'No reported content',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(AppSizes.paddingMD),
+                    itemCount: docs.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final report = docs[index];
+                      return _buildReportCard(report);
+                    },
                   ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSizes.paddingMD),
-            itemCount: snapshot.data!.docs.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              final report = snapshot.data!.docs[index];
-              return _buildReportCard(report);
-            },
           );
         },
       ),

@@ -9,6 +9,7 @@ import '../../models/order_model.dart';
 import '../../services/user_service.dart';
 import '../../services/order_service.dart';
 import '../../controllers/dashboard_controller.dart';
+import '../../widgets/shimmer_loading.dart';
 import '../../widgets/order_details_dialog.dart';
 import '../../core/utils/animations.dart';
 
@@ -53,96 +54,128 @@ class OverviewScreen extends StatelessWidget {
               ).animateFadeInUp(delay: 100),
               const SizedBox(height: AppSizes.paddingXL),
 
-              // User Statistics Cards
               FutureBuilder<Map<String, int>>(
                 future: UserService.getUserStatistics(),
                 builder: (context, snapshot) {
+                  final isLoading =
+                      snapshot.connectionState == ConnectionState.waiting;
                   final stats =
                       snapshot.data ??
                       {'total': 0, 'buyers': 0, 'sellers': 0, 'couriers': 0};
 
-                  return GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: AppSizes.paddingMD,
-                    mainAxisSpacing: AppSizes.paddingMD,
-                    childAspectRatio: childAspectRatio,
-                    children: [
-                      StatCard(
-                        title: 'Total Users',
-                        value: stats['total'].toString(),
-                        icon: Icons.people,
-                        color: AppColors.primary,
-                        percentageChange: 12.5,
-                      ).animateStaggered(0),
-                      StatCard(
-                        title: 'Buyers',
-                        value: stats['buyers'].toString(),
-                        icon: Icons.shopping_cart,
-                        color: AppColors.secondary,
-                      ).animateStaggered(1),
-                      StatCard(
-                        title: 'Sellers',
-                        value: stats['sellers'].toString(),
-                        icon: Icons.store,
-                        color: AppColors.success,
-                      ).animateStaggered(2),
-                      StatCard(
-                        title: 'Couriers',
-                        value: stats['couriers'].toString(),
-                        icon: Icons.delivery_dining,
-                        color: AppColors.warning,
-                      ).animateStaggered(3),
-                    ],
+                  return ShimmerSwitcher(
+                    isLoading: isLoading,
+                    skeleton: GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: childAspectRatio,
+                      children: List.generate(
+                        4,
+                        (index) => ShimmerLoading.rounded(height: 100),
+                      ),
+                    ),
+                    child: GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: childAspectRatio,
+                      children: [
+                        StatCard(
+                          title: 'Total Users',
+                          value: stats['total'].toString(),
+                          icon: Icons.people,
+                          color: AppColors.primary,
+                          percentageChange: 12.5,
+                        ).animateStaggered(0),
+                        StatCard(
+                          title: 'Buyers',
+                          value: stats['buyers'].toString(),
+                          icon: Icons.shopping_cart,
+                          color: AppColors.secondary,
+                        ).animateStaggered(1),
+                        StatCard(
+                          title: 'Sellers',
+                          value: stats['sellers'].toString(),
+                          icon: Icons.store,
+                          color: AppColors.success,
+                        ).animateStaggered(2),
+                        StatCard(
+                          title: 'Couriers',
+                          value: stats['couriers'].toString(),
+                          icon: Icons.delivery_dining,
+                          color: AppColors.warning,
+                        ).animateStaggered(3),
+                      ],
+                    ),
                   );
                 },
               ),
 
               const SizedBox(height: AppSizes.paddingXL),
 
-              // Order Statistics
               FutureBuilder<Map<String, dynamic>>(
                 future: OrderService.getOrderStatistics(),
                 builder: (context, snapshot) {
+                  final isLoading =
+                      snapshot.connectionState == ConnectionState.waiting;
                   final stats =
                       snapshot.data ??
                       {'total': 0, 'pending': 0, 'onTheWay': 0, 'delivered': 0};
 
-                  return GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: AppSizes.paddingMD,
-                    mainAxisSpacing: AppSizes.paddingMD,
-                    childAspectRatio: childAspectRatio,
-                    children: [
-                      StatCard(
-                        title: 'Total Orders',
-                        value: stats['total'].toString(),
-                        icon: Icons.shopping_bag,
-                        color: AppColors.primary,
-                        percentageChange: 8.3,
-                      ).animateStaggered(0),
-                      StatCard(
-                        title: 'Pending',
-                        value: stats['pending'].toString(),
-                        icon: Icons.pending,
-                        color: AppColors.warning,
-                      ).animateStaggered(1),
-                      StatCard(
-                        title: 'On The Way',
-                        value: stats['onTheWay'].toString(),
-                        icon: Icons.local_shipping,
-                        color: AppColors.info,
-                      ).animateStaggered(2),
-                      StatCard(
-                        title: 'Delivered',
-                        value: stats['delivered'].toString(),
-                        icon: Icons.check_circle,
-                        color: AppColors.success,
-                      ).animateStaggered(3),
-                    ],
+                  return ShimmerSwitcher(
+                    isLoading: isLoading,
+                    skeleton: GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: childAspectRatio,
+                      children: List.generate(
+                        4,
+                        (index) => ShimmerLoading.rounded(height: 100),
+                      ),
+                    ),
+                    child: GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: AppSizes.paddingMD,
+                      mainAxisSpacing: AppSizes.paddingMD,
+                      childAspectRatio: childAspectRatio,
+                      children: [
+                        StatCard(
+                          title: 'Total Orders',
+                          value: stats['total'].toString(),
+                          icon: Icons.shopping_bag,
+                          color: AppColors.primary,
+                          percentageChange: 8.3,
+                        ).animateStaggered(0),
+                        StatCard(
+                          title: 'Pending',
+                          value: stats['pending'].toString(),
+                          icon: Icons.pending,
+                          color: AppColors.warning,
+                        ).animateStaggered(1),
+                        StatCard(
+                          title: 'On The Way',
+                          value: stats['onTheWay'].toString(),
+                          icon: Icons.local_shipping,
+                          color: AppColors.info,
+                        ).animateStaggered(2),
+                        StatCard(
+                          title: 'Delivered',
+                          value: stats['delivered'].toString(),
+                          icon: Icons.check_circle,
+                          color: AppColors.success,
+                        ).animateStaggered(3),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -231,98 +264,93 @@ class OverviewScreen extends StatelessWidget {
             StreamBuilder<List<OrderModel>>(
               stream: OrderService.getAllOrders(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingLG),
-                      child: Text(
-                        'Error loading orders: ${snapshot.error}',
-                        style: GoogleFonts.inter(color: AppColors.error),
-                      ),
-                    ),
-                  );
-                }
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSizes.paddingLG),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
+                final isLoading =
+                    snapshot.connectionState == ConnectionState.waiting;
                 final orders = snapshot.data?.take(5).toList() ?? [];
 
-                if (orders.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingXL),
-                      child: Text(
-                        'No recent orders',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: orders.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    return ListTile(
-                      onTap: () => showDialog(
-                        context: context,
-                        builder: (context) => OrderDetailsDialog(order: order),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: _getStatusColor(
-                          order.status,
-                        ).withOpacity(0.1),
-                        child: Icon(
-                          Icons.shopping_bag,
-                          color: _getStatusColor(order.status),
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        order.buyerName,
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        '\$${order.grandTotal.toStringAsFixed(2)}',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingSM,
-                          vertical: AppSizes.paddingXS,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(order.status).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusXS,
+                return ShimmerSwitcher(
+                  isLoading: isLoading,
+                  skeleton: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 5,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) =>
+                        ShimmerLoading.rounded(height: 60),
+                  ),
+                  child: orders.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSizes.paddingXL),
+                            child: Text(
+                              'No recent orders',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: orders.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) {
+                            final order = orders[index];
+                            return ListTile(
+                              onTap: () => showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    OrderDetailsDialog(order: order),
+                              ),
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: _getStatusColor(
+                                  order.status,
+                                ).withOpacity(0.1),
+                                child: Icon(
+                                  Icons.shopping_bag,
+                                  color: _getStatusColor(order.status),
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                order.buyerName,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '\$${order.grandTotal.toStringAsFixed(2)}',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSizes.paddingSM,
+                                  vertical: AppSizes.paddingXS,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(
+                                    order.status,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusXS,
+                                  ),
+                                ),
+                                child: Text(
+                                  _getStatusText(order.status),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getStatusColor(order.status),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        child: Text(
-                          _getStatusText(order.status),
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _getStatusColor(order.status),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
                 );
               },
             ),
@@ -381,68 +409,82 @@ class OverviewScreen extends StatelessWidget {
             StreamBuilder<List<UserModel>>(
               stream: UserService.getAllUsers(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                final isLoading =
+                    snapshot.connectionState == ConnectionState.waiting;
+                final pendingUsers =
+                    snapshot.data
+                        ?.where(
+                          (user) =>
+                              user.verificationStatus ==
+                              VerificationStatus.pending,
+                        )
+                        .take(5)
+                        .toList() ??
+                    [];
 
-                final pendingUsers = snapshot.data!
-                    .where(
-                      (user) =>
-                          user.verificationStatus == VerificationStatus.pending,
-                    )
-                    .take(5)
-                    .toList();
-
-                if (pendingUsers.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingXL),
-                      child: Text(
-                        'No pending verifications',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
+                return ShimmerSwitcher(
+                  isLoading: isLoading,
+                  skeleton: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 5,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) =>
+                        ShimmerLoading.rounded(height: 60),
+                  ),
+                  child: pendingUsers.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSizes.paddingXL),
+                            child: Text(
+                              'No pending verifications',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: pendingUsers.length,
+                          separatorBuilder: (context, index) => const Divider(),
+                          itemBuilder: (context, index) {
+                            final user = pendingUsers[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.warning.withOpacity(
+                                  0.1,
+                                ),
+                                child: Icon(
+                                  user.userType == UserType.seller
+                                      ? Icons.store
+                                      : Icons.delivery_dining,
+                                  color: AppColors.warning,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                user.name,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                user.userType.name.toUpperCase(),
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppColors.textHint,
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: pendingUsers.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final user = pendingUsers[index];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.warning.withOpacity(0.1),
-                        child: Icon(
-                          user.userType == UserType.seller
-                              ? Icons.store
-                              : Icons.delivery_dining,
-                          color: AppColors.warning,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        user.name,
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        user.userType.name.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: AppColors.textHint,
-                      ),
-                    );
-                  },
                 );
               },
             ),
