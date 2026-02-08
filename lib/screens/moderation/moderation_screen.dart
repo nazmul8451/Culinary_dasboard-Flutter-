@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../models/message_model.dart';
+import '../../services/message_service.dart';
 
 class ModerationScreen extends StatefulWidget {
   const ModerationScreen({super.key});
@@ -301,7 +303,7 @@ class _ModerationScreenState extends State<ModerationScreen>
                       const SizedBox(width: AppSizes.paddingSM),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _rejectProduct(product.id),
+                          onPressed: () => _rejectProduct(product),
                           icon: const Icon(Icons.close, size: 16),
                           label: const Text('Reject'),
                           style: OutlinedButton.styleFrom(
@@ -484,15 +486,77 @@ class _ModerationScreenState extends State<ModerationScreen>
     }
   }
 
-  Future<void> _rejectProduct(String productId) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .update({'status': 'rejected'});
-      _showSnackBar('Product rejected', AppColors.error);
-    } catch (e) {
-      _showSnackBar('Failed to reject product', AppColors.error);
+  Future<void> _rejectProduct(DocumentSnapshot product) async {
+    final data = product.data() as Map<String, dynamic>;
+    final productId = product.id;
+    final sellerId = data['sellerId'];
+    final productName = data['name'] ?? 'Product';
+
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter reason for rejecting "$productName":'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                hintText: 'e.g., Low image quality, Inappropriate content...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .update({
+              'status': 'rejected',
+              'rejectionReason': reasonController.text,
+            });
+
+        // Notify vendor
+        if (sellerId != null && sellerId.toString().isNotEmpty) {
+          final msg = MessageModel(
+            id: '',
+            senderId: 'admin',
+            receiverId: sellerId.toString(),
+            content:
+                'Your product "$productName" was rejected. Reason: ${reasonController.text}',
+            timestamp: DateTime.now(),
+            type: MessageType.chat,
+            status: MessageStatus.sent,
+          );
+          await MessageService.sendMessage(msg);
+        }
+
+        if (mounted) _showSnackBar('Product rejected', AppColors.error);
+      } catch (e) {
+        if (mounted) _showSnackBar('Failed to reject product', AppColors.error);
+      }
     }
   }
 

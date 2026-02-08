@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:html' as html;
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
 import '../../services/order_service.dart';
 import '../../services/subscription_service.dart';
 import '../../core/utils/animations.dart';
+import '../../services/user_service.dart';
+import '../../models/user_model.dart';
+import '../../models/order_model.dart';
 
 class FinancialScreen extends StatelessWidget {
   const FinancialScreen({super.key});
@@ -19,50 +23,55 @@ class FinancialScreen extends StatelessWidget {
         final isMobile = screenWidth < 600;
         final isNarrow = screenWidth < 1100;
 
-        // Dynamic crossAxisCount for revenue cards
-        final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
+        return FutureBuilder<Map<String, dynamic>>(
+          future:
+              Future.wait([
+                OrderService.getOrderStatistics(),
+                SubscriptionService.getSubscriptionStats(),
+                OrderService.getMonthlyRevenue(),
+              ]).then(
+                (results) => {
+                  ...results[0] as Map,
+                  ...results[1] as Map,
+                  'chartData': results[2] as List<double>,
+                },
+              ),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: LinearProgressIndicator());
+            }
+            final stats = snapshot.data ?? {};
+            final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
+            final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8);
 
-        // Adjust childAspectRatio based on columns
-        final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8);
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(
+                isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Text(
+                    'Financial Dashboard',
+                    style: GoogleFonts.inter(
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ).animateFadeInUp(),
+                  const SizedBox(height: AppSizes.paddingSM),
+                  Text(
+                    'Monitor earnings, escrow, and payouts',
+                    style: GoogleFonts.inter(
+                      fontSize: isMobile ? 12 : 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ).animateFadeInUp(delay: 100),
+                  const SizedBox(height: AppSizes.paddingXL),
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(
-            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Financial Dashboard',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ).animateFadeInUp(),
-              const SizedBox(height: AppSizes.paddingSM),
-              Text(
-                'Monitor earnings, escrow, and payouts',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 12 : 14,
-                  color: AppColors.textSecondary,
-                ),
-              ).animateFadeInUp(delay: 100),
-              const SizedBox(height: AppSizes.paddingXL),
-
-              // Revenue Stats
-              FutureBuilder<Map<String, dynamic>>(
-                future: Future.wait([
-                  OrderService.getOrderStatistics(),
-                  SubscriptionService.getSubscriptionStats(),
-                ]).then((results) => {...results[0], ...results[1]}),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: LinearProgressIndicator());
-                  }
-                  final stats = snapshot.data ?? {};
-                  return GridView.count(
+                  // Revenue Stats
+                  GridView.count(
                     crossAxisCount: crossAxisCount,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -95,65 +104,73 @@ class FinancialScreen extends StatelessWidget {
                         subtitle: '${stats['activeCount'] ?? 0} Active Vendors',
                       ).animateStaggered(2),
                       StatCard(
-                        title: 'Failed Payments',
-                        value: '${stats['failedCount'] ?? 0}',
-                        icon: Icons.warning_amber_rounded,
+                        title: 'Admin Commission',
+                        value:
+                            '\$${(stats['adminCommission'] ?? 0).toStringAsFixed(2)}',
+                        icon: Icons.account_balance_rounded,
                         color: AppColors.error,
-                        subtitle: 'Past Due Subs',
+                        subtitle: '10% order cut',
                       ).animateStaggered(3),
                     ],
-                  );
-                },
+                  ),
+
+                  const SizedBox(height: AppSizes.paddingXL),
+
+                  // Charts Row
+                  if (isNarrow)
+                    Column(
+                      children: [
+                        _buildRevenueChart(stats['chartData'] ?? []),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        _buildEscrowCard(stats),
+                      ],
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: _buildRevenueChart(
+                            stats['chartData'] ?? [],
+                          ).animateFadeInUp(delay: 200),
+                        ),
+                        const SizedBox(width: AppSizes.paddingMD),
+                        Expanded(
+                          child: _buildEscrowCard(
+                            stats,
+                          ).animateSlideInRight(delay: 300),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: AppSizes.paddingXL),
+
+                  // Payouts & Subscriptions Section
+                  if (isNarrow)
+                    Column(
+                      children: [
+                        _buildPayoutsCard(isMobile),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        _buildSubscriptionsCard(isMobile),
+                      ],
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 1, child: _buildPayoutsCard(isMobile)),
+                        const SizedBox(width: AppSizes.paddingMD),
+                        Expanded(
+                          flex: 1,
+                          child: _buildSubscriptionsCard(isMobile),
+                        ),
+                      ],
+                    ),
+                ],
               ),
-
-              const SizedBox(height: AppSizes.paddingXL),
-
-              // Charts Row
-              if (isNarrow)
-                Column(
-                  children: [
-                    _buildRevenueChart(),
-                    const SizedBox(height: AppSizes.paddingMD),
-                    _buildEscrowCard(),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: _buildRevenueChart().animateFadeInUp(delay: 200),
-                    ),
-                    const SizedBox(width: AppSizes.paddingMD),
-                    Expanded(
-                      child: _buildEscrowCard().animateSlideInRight(delay: 300),
-                    ),
-                  ],
-                ),
-
-              const SizedBox(height: AppSizes.paddingXL),
-
-              // Payouts & Subscriptions Section
-              if (isNarrow)
-                Column(
-                  children: [
-                    _buildPayoutsCard(isMobile),
-                    const SizedBox(height: AppSizes.paddingMD),
-                    _buildSubscriptionsCard(isMobile),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 1, child: _buildPayoutsCard(isMobile)),
-                    const SizedBox(width: AppSizes.paddingMD),
-                    Expanded(flex: 1, child: _buildSubscriptionsCard(isMobile)),
-                  ],
-                ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -213,7 +230,26 @@ class FinancialScreen extends StatelessWidget {
                       subtitle: Text(
                         'Next billing: ${sub.nextBillingDate.toString().split(' ')[0]}',
                       ),
-                      trailing: _buildSubscriptionStatusBadge(sub.status),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildSubscriptionStatusBadge(sub.status),
+                          if (sub.status == SubscriptionStatus.pastDue ||
+                              sub.status == SubscriptionStatus.canceled) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.block,
+                                color: AppColors.error,
+                                size: 20,
+                              ),
+                              tooltip: 'Suspend Vendor',
+                              onPressed: () =>
+                                  _suspendVendorForNonPayment(context, sub),
+                            ),
+                          ],
+                        ],
+                      ),
                     );
                   },
                 );
@@ -258,7 +294,35 @@ class FinancialScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRevenueChart() {
+  Widget _buildRevenueChart(List<double> monthlyRevenue) {
+    final now = DateTime.now();
+    final months = [];
+    for (int i = 5; i >= 0; i--) {
+      final d = DateTime(now.year, now.month - i, 1);
+      months.add(
+        [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ][d.month - 1],
+      );
+    }
+
+    double maxVal = 1000;
+    for (var val in monthlyRevenue) {
+      if (val > maxVal) maxVal = val;
+    }
+    maxVal = (maxVal / 1000).ceil() * 1000.0;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -296,7 +360,7 @@ class FinancialScreen extends StatelessWidget {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: 5000,
+                    horizontalInterval: maxVal / 5,
                     getDrawingHorizontalLine: (value) {
                       return FlLine(color: AppColors.border, strokeWidth: 1);
                     },
@@ -308,9 +372,9 @@ class FinancialScreen extends StatelessWidget {
                         reservedSize: 50,
                         getTitlesWidget: (value, meta) {
                           return Text(
-                            '\$${(value / 1000).toStringAsFixed(0)}k',
+                            '\$${(value / 1000).toStringAsFixed(1)}k',
                             style: GoogleFonts.inter(
-                              fontSize: 12,
+                              fontSize: 10,
                               color: AppColors.textSecondary,
                             ),
                           );
@@ -321,20 +385,12 @@ class FinancialScreen extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          const months = [
-                            'Jan',
-                            'Feb',
-                            'Mar',
-                            'Apr',
-                            'May',
-                            'Jun',
-                          ];
                           if (value.toInt() >= 0 &&
                               value.toInt() < months.length) {
                             return Text(
                               months[value.toInt()],
                               style: GoogleFonts.inter(
-                                fontSize: 12,
+                                fontSize: 10,
                                 color: AppColors.textSecondary,
                               ),
                             );
@@ -353,14 +409,9 @@ class FinancialScreen extends StatelessWidget {
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: const [
-                        FlSpot(0, 8000),
-                        FlSpot(1, 12000),
-                        FlSpot(2, 10000),
-                        FlSpot(3, 15000),
-                        FlSpot(4, 18000),
-                        FlSpot(5, 22000),
-                      ],
+                      spots: monthlyRevenue.asMap().entries.map((e) {
+                        return FlSpot(e.key.toDouble(), e.value);
+                      }).toList(),
                       isCurved: true,
                       color: AppColors.primary,
                       barWidth: 3,
@@ -372,7 +423,7 @@ class FinancialScreen extends StatelessWidget {
                     ),
                   ],
                   minY: 0,
-                  maxY: 25000,
+                  maxY: maxVal,
                 ),
               ),
             ),
@@ -382,7 +433,7 @@ class FinancialScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEscrowCard() {
+  Widget _buildEscrowCard(Map<String, dynamic> stats) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -415,21 +466,21 @@ class FinancialScreen extends StatelessWidget {
             const SizedBox(height: AppSizes.paddingLG),
             _buildEscrowItem(
               'Total Held',
-              '\$18,920',
+              '\$${(stats['escrowHeld'] ?? 0).toStringAsFixed(2)}',
               AppColors.warning,
               Icons.lock,
             ),
             const Divider(height: AppSizes.paddingLG),
             _buildEscrowItem(
               'Pending Release',
-              '\$8,450',
+              '\$${(stats['pendingRelease'] ?? 0).toStringAsFixed(2)}',
               AppColors.info,
               Icons.pending,
             ),
             const Divider(height: AppSizes.paddingLG),
             _buildEscrowItem(
-              'Released Today',
-              '\$3,200',
+              'Released Total',
+              '\$${(stats['releasedRevenue'] ?? 0).toStringAsFixed(2)}',
               AppColors.success,
               Icons.check_circle,
             ),
@@ -437,7 +488,11 @@ class FinancialScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  const url =
+                      'https://dashboard.stripe.com/acct_1C4VxjLWripuEZOe/dashboard';
+                  html.window.open(url, '_blank');
+                },
                 icon: const Icon(Icons.visibility),
                 label: const Text('View Stripe Dashboard'),
                 style: ElevatedButton.styleFrom(
@@ -544,17 +599,45 @@ class FinancialScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSizes.paddingMD),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 5,
-              separatorBuilder: (context, index) => const Divider(),
-              itemBuilder: (context, index) {
-                return _buildPayoutItem(
-                  'Seller ${index + 1}',
-                  '\$${(500 + index * 100).toStringAsFixed(2)}',
-                  index % 2 == 0 ? 'Completed' : 'Pending',
-                  index % 2 == 0,
+            StreamBuilder<List<OrderModel>>(
+              stream: OrderService.getAllOrders(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return const Center(child: CircularProgressIndicator());
+
+                final allOrders = snapshot.data ?? [];
+                // Filter for delivered or released orders which represent "payouts"
+                final payouts = allOrders
+                    .where(
+                      (o) =>
+                          o.status == OrderStatus.delivered ||
+                          o.escrowStatus == EscrowStatus.released,
+                    )
+                    .toList();
+
+                if (payouts.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSizes.paddingMD),
+                    child: Text('No recent payouts found.'),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: payouts.length > 5 ? 5 : payouts.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final order = payouts[index];
+                    return _buildPayoutItem(
+                      order.sellerName,
+                      '\$${order.grandTotal.toStringAsFixed(2)}',
+                      order.escrowStatus == EscrowStatus.released
+                          ? 'Completed'
+                          : 'Pending',
+                      order.escrowStatus == EscrowStatus.released,
+                    );
+                  },
                 );
               },
             ),
@@ -594,5 +677,54 @@ class FinancialScreen extends StatelessWidget {
         style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
+  }
+
+  Future<void> _suspendVendorForNonPayment(
+    BuildContext context,
+    SubscriptionModel sub,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Suspend Vendor?'),
+        content: Text(
+          'Are you sure you want to suspend "${sub.vendorName}" for non-payment?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Suspend'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await UserService.updateUserStatus(sub.vendorId, UserStatus.suspended);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Vendor suspended successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error suspending vendor: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
   }
 }

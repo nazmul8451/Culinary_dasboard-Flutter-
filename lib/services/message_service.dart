@@ -1,6 +1,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/message_model.dart';
 import 'realtime_database_service.dart';
+import 'notification_service.dart';
 
 class MessageService {
   static final DatabaseReference _messagesRef = RealtimeDatabaseService.ref(
@@ -15,7 +16,22 @@ class MessageService {
     try {
       final newMessageRef = _messagesRef.push();
       await newMessageRef.set(message.toMap());
-      print('✅ Message sent to ${message.receiverId}');
+
+      // Log notification for incoming messages
+      if (message.senderId != 'admin' && message.receiverId == 'admin') {
+        await NotificationService.addNotification(
+          NotificationModel(
+            id: '',
+            title: 'New Message',
+            body:
+                'You received a message from ${message.senderId}: ${message.content}',
+            timestamp: DateTime.now(),
+            type: NotificationType.message,
+            relatedId: message.senderId,
+          ),
+        );
+      }
+      print('✅ Message processed for ${message.receiverId}');
     } catch (e) {
       print('❌ Error sending message: $e');
       rethrow;
@@ -55,6 +71,19 @@ class MessageService {
     try {
       final newBroadcastRef = _broadcastsRef.push();
       await newBroadcastRef.set(broadcast.toMap());
+
+      // Log the broadcast in admin notifications
+      await NotificationService.addNotification(
+        NotificationModel(
+          id: '',
+          title: 'Broadcast Sent',
+          body:
+              'Sent ${broadcast.type.name} to ${broadcast.receiverId}: ${broadcast.content}',
+          timestamp: DateTime.now(),
+          type: NotificationType.message,
+        ),
+      );
+
       print('✅ Broadcast sent to ${broadcast.receiverId}');
 
       // In a real app, a Cloud Function would trigger Push/Email/SMS here

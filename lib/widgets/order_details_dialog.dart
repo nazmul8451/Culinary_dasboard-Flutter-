@@ -29,10 +29,19 @@ class OrderDetailsDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildDetailRow('Order ID', order.id),
-            _buildDetailRow('Customer', order.buyerName),
-            _buildDetailRow('Seller', order.sellerName),
+            _buildDetailRow(
+              'Customer',
+              '${order.buyerName} (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
+            ),
+            _buildDetailRow(
+              'Seller',
+              '${order.sellerName} (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
+            ),
             if (order.courierName != null)
-              _buildDetailRow('Courier', order.courierName!),
+              _buildDetailRow(
+                'Courier',
+                '${order.courierName} (${order.courierId?.length != null && order.courierId!.length > 8 ? order.courierId!.substring(0, 8) : order.courierId ?? ''})',
+              ),
 
             // Product Items Section
             if (order.items.isNotEmpty) ...[

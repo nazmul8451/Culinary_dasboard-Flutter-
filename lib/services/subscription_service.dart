@@ -28,10 +28,7 @@ class SubscriptionModel {
       vendorId: map['vendorId'] ?? '',
       vendorName: map['vendorName'] ?? 'Unknown Vendor',
       amount: (map['amount'] ?? 0).toDouble(),
-      status: SubscriptionStatus.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => SubscriptionStatus.active,
-      ),
+      status: _parseStatus(map['status']),
       nextBillingDate: DateTime.fromMillisecondsSinceEpoch(
         map['nextBillingDate'] ?? 0,
       ),
@@ -39,6 +36,22 @@ class SubscriptionModel {
           ? DateTime.fromMillisecondsSinceEpoch(map['lastPaymentDate'])
           : null,
     );
+  }
+
+  static SubscriptionStatus _parseStatus(dynamic val) {
+    if (val == null) return SubscriptionStatus.active;
+    final str = val
+        .toString()
+        .toLowerCase()
+        .replaceAll('_', '')
+        .replaceAll(' ', '');
+    if (str == 'pastdue') return SubscriptionStatus.pastDue;
+    if (str == 'active') return SubscriptionStatus.active;
+    if (str == 'canceled' || str == 'cancelled') {
+      return SubscriptionStatus.canceled;
+    }
+    if (str == 'expired') return SubscriptionStatus.expired;
+    return SubscriptionStatus.active;
   }
 }
 

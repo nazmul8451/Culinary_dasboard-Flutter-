@@ -7,6 +7,7 @@ import '../../services/message_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
+import '../../services/notification_service.dart';
 
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
@@ -28,7 +29,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -41,7 +42,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
@@ -54,13 +55,44 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Communications',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Communications Center',
+                    style: GoogleFonts.inter(
+                      fontSize: isMobile ? 24 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (!isMobile)
+                    StreamBuilder<int>(
+                      stream: MessageService.getTotalUnreadCount(),
+                      builder: (context, snapshot) {
+                        final count = snapshot.data ?? 0;
+                        if (count == 0) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$count Unread Messages',
+                            style: GoogleFonts.inter(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
               ),
               const SizedBox(height: AppSizes.paddingMD),
               TabBar(
@@ -70,7 +102,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.primary,
                 tabs: [
-                  const Tab(text: 'Broadcast Messages'),
+                  const Tab(text: 'Broadcasts'),
                   StreamBuilder<int>(
                     stream: MessageService.getTotalUnreadCount(),
                     builder: (context, snapshot) {
@@ -79,7 +111,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('Individual Chats'),
+                            const Text('Chats'),
                             if (count > 0) ...[
                               const SizedBox(width: 8),
                               Container(
@@ -87,9 +119,44 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                                   horizontal: 6,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
+                                  color: AppColors.error,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  count.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  StreamBuilder<int>(
+                    stream: NotificationService.getUnreadCount(),
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      return Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Notifications'),
+                            if (count > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: const BoxDecoration(
                                   color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(10),
+                                  shape: BoxShape.circle,
                                 ),
                                 child: Text(
                                   count.toString(),
@@ -115,6 +182,7 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                   children: [
                     _buildBroadcastTab(isMobile),
                     _buildChatsTab(isMobile),
+                    _buildNotificationsTab(isMobile),
                   ],
                 ),
               ),
@@ -433,5 +501,111 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
       context: context,
       builder: (context) => ChatDialog(user: user),
     );
+  }
+
+  Widget _buildNotificationsTab(bool isSmallScreen) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSizes.paddingMD),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => NotificationService.markAllAsRead(),
+                icon: const Icon(Icons.done_all),
+                label: const Text('Mark all as read'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<List<NotificationModel>>(
+            stream: NotificationService.getNotifications(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting)
+                return const Center(child: CircularProgressIndicator());
+              final notifications = snapshot.data ?? [];
+              if (notifications.isEmpty)
+                return const Center(child: Text('No notifications found.'));
+              return ListView.separated(
+                itemCount: notifications.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final n = notifications[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getNotificationColor(
+                        n.type,
+                      ).withOpacity(0.1),
+                      child: Icon(
+                        _getNotificationIcon(n.type),
+                        color: _getNotificationColor(n.type),
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      n.title,
+                      style: GoogleFonts.inter(
+                        fontWeight: n.isRead
+                            ? FontWeight.normal
+                            : FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(n.body),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${n.timestamp.day}/${n.timestamp.month} ${n.timestamp.hour}:${n.timestamp.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: n.isRead
+                        ? null
+                        : const Icon(
+                            Icons.circle,
+                            size: 8,
+                            color: AppColors.primary,
+                          ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _getNotificationIcon(NotificationType type) {
+    switch (type) {
+      case NotificationType.message:
+        return Icons.message;
+      case NotificationType.order:
+        return Icons.shopping_bag;
+      case NotificationType.support:
+        return Icons.help;
+      case NotificationType.security:
+        return Icons.security;
+    }
+  }
+
+  Color _getNotificationColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.message:
+        return AppColors.primary;
+      case NotificationType.order:
+        return AppColors.success;
+      case NotificationType.support:
+        return AppColors.info;
+      case NotificationType.security:
+        return AppColors.error;
+    }
   }
 }

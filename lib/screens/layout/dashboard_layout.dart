@@ -14,6 +14,7 @@ import '../support/support_tickets_screen.dart';
 import '../moderation/moderation_logs_screen.dart';
 import '../communications/communications_screen.dart';
 import '../../services/message_service.dart';
+import '../../services/notification_service.dart';
 import '../../controllers/dashboard_controller.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -77,6 +78,35 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                 ),
               ),
               actions: [
+                // Notifications Badge
+                StreamBuilder<int>(
+                  stream: NotificationService.getUnreadCount(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildAppBarAction(
+                      icon: Icons.notifications_none_rounded,
+                      count: count,
+                      onTap: () {
+                        // Open notifications overlay or navigate
+                      },
+                    );
+                  },
+                ),
+                // Messages Badge (Messenger style)
+                StreamBuilder<int>(
+                  stream: MessageService.getTotalUnreadCount(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildAppBarAction(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      count: count,
+                      onTap: () {
+                        _dashboardController.changeRoute('/communications');
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
                 // Admin Profile
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -254,5 +284,46 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         },
       );
     });
+  }
+
+  Widget _buildAppBarAction({
+    required IconData icon,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          IconButton(
+            icon: Icon(icon, color: AppColors.textSecondary),
+            onPressed: onTap,
+          ),
+          if (count > 0)
+            Positioned(
+              right: 8,
+              top: 8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  count > 9 ? '9+' : count.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

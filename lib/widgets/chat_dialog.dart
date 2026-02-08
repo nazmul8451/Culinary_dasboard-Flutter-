@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
 import '../../core/constants/app_colors.dart';
+import '../../services/moderation_service.dart';
 
 class ChatDialog extends StatefulWidget {
   final UserModel user;
@@ -14,6 +16,14 @@ class ChatDialog extends StatefulWidget {
 
 class _ChatDialogState extends State<ChatDialog> {
   final TextEditingController _messageController = TextEditingController();
+
+  static final _phoneRegex = RegExp(
+    r'(\+?\d{1,4}[\s-]?)?\(?\d{3}\)?[\s-]?\d{3,4}[\s-]?\d{4}',
+  );
+  static final _emailRegex = RegExp(
+    r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+  );
+  static final _urlRegex = RegExp(r'(https?://|www\.)[^\s]+');
 
   @override
   void initState() {
@@ -52,18 +62,33 @@ class _ChatDialogState extends State<ChatDialog> {
                             : Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 8,
+                            vertical: 6,
+                            horizontal: 4,
+                          ),
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                            horizontal: 16,
+                            vertical: 10,
                           ),
                           decoration: BoxDecoration(
                             color: isAdmin
                                 ? AppColors.primary
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(16),
+                              topRight: const Radius.circular(16),
+                              bottomLeft: Radius.circular(isAdmin ? 16 : 0),
+                              bottomRight: Radius.circular(isAdmin ? 0 : 16),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: isAdmin
@@ -72,20 +97,23 @@ class _ChatDialogState extends State<ChatDialog> {
                             children: [
                               Text(
                                 msg.content,
-                                style: TextStyle(
+                                style: GoogleFonts.inter(
                                   color: isAdmin
                                       ? Colors.white
-                                      : Colors.black87,
+                                      : AppColors.textPrimary,
+                                  fontSize: 14,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Text(
                                 '${msg.timestamp.hour}:${msg.timestamp.minute.toString().padLeft(2, '0')}',
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: isAdmin
-                                      ? Colors.white70
-                                      : Colors.black45,
+                                      ? Colors.white.withOpacity(0.7)
+                                      : AppColors.textSecondary.withOpacity(
+                                          0.7,
+                                        ),
                                 ),
                               ),
                             ],
@@ -129,10 +157,61 @@ class _ChatDialogState extends State<ChatDialog> {
     );
   }
 
-  void _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
+  Future<void> _sendMessage() async {
+    final content = _messageController.text.trim();
+    if (content.isEmpty) return;
 
-    final content = _messageController.text;
+    // Check for violations
+    final violations = _detectContactSharing(content);
+    if (violations.isNotEmpty) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Security Warning'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This message contains contact information:'),
+              const SizedBox(height: 8),
+              Text(
+                violations.join(', '),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Sharing contact information outside the platform is logged for security review. Continue?',
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Send Anyway'),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+
+      // Log violation
+      await ModerationService.logViolation(
+        userId: 'admin',
+        userName: 'Administrator',
+        type: ModerationLogType.contactSharing,
+        details: 'Admin sent: ${violations.join(', ')} in message: "$content"',
+      );
+    }
+
     _messageController.clear(); // Clear immediately for better UX
 
     final msg = MessageModel(
@@ -154,5 +233,13 @@ class _ChatDialogState extends State<ChatDialog> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
+  }
+
+  List<String> _detectContactSharing(String message) {
+    final violations = <String>[];
+    if (_phoneRegex.hasMatch(message)) violations.add('Phone Number');
+    if (_emailRegex.hasMatch(message)) violations.add('Email Address');
+    if (_urlRegex.hasMatch(message)) violations.add('Website URL');
+    return violations;
   }
 }

@@ -157,6 +157,8 @@ class OrderService {
       double releasedRevenue = 0;
       double escrowHeld = 0;
       double refundedAmount = 0;
+      double pendingRelease = 0;
+      double adminCommission = 0;
 
       if (snapshot.exists && snapshot.value != null) {
         final data = snapshot.value as Map<dynamic, dynamic>;
@@ -172,11 +174,17 @@ class OrderService {
 
             if (escrow == 'released') {
               releasedRevenue += total;
+              adminCommission +=
+                  (amount * 0.10); // 10% commission on food amount
             } else if (escrow == 'held') {
               escrowHeld += total;
+              if (status == 'delivered') {
+                pendingRelease += total;
+              }
             } else if (escrow == 'refunded') {
               refundedAmount += total;
             }
+            // ... switch status block ...
 
             switch (status) {
               case 'pending':
@@ -213,6 +221,8 @@ class OrderService {
         'releasedRevenue': releasedRevenue,
         'escrowHeld': escrowHeld,
         'refundedAmount': refundedAmount,
+        'pendingRelease': pendingRelease,
+        'adminCommission': adminCommission,
       };
     } catch (e) {
       print('Error getting order statistics: $e');
@@ -227,7 +237,51 @@ class OrderService {
         'releasedRevenue': 0.0,
         'escrowHeld': 0.0,
         'refundedAmount': 0.0,
+        'pendingRelease': 0.0,
+        'adminCommission': 0.0,
       };
     }
+  }
+
+  /// Get monthly revenue for the last 6 months
+  static Future<List<double>> getMonthlyRevenue() async {
+    try {
+      final snapshot = await _ordersRef.get();
+      final List<double> monthlyValues = List.filled(12, 0.0);
+
+      if (snapshot.exists && snapshot.value != null) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map && value['escrowStatus'] == 'released') {
+            final date = _parseDateTime(value['createdAt']);
+            final amount = (value['totalAmount'] ?? 0).toDouble();
+            final deliveryFee = (value['deliveryFee'] ?? 0).toDouble();
+            // Group by month (0-11)
+            monthlyValues[date.month - 1] += (amount + deliveryFee);
+          }
+        });
+      }
+
+      // Get last 6 months in order
+      final now = DateTime.now();
+      final List<double> last6Months = [];
+      for (int i = 5; i >= 0; i--) {
+        final monthDate = DateTime(now.year, now.month - i, 1);
+        int monthIndex = monthDate.month - 1;
+        if (monthIndex < 0) monthIndex += 12;
+        last6Months.add(monthlyValues[monthIndex]);
+      }
+      return last6Months;
+    } catch (e) {
+      print('Error getting monthly revenue: $e');
+      return List.filled(6, 0.0);
+    }
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    return DateTime.now();
   }
 }
