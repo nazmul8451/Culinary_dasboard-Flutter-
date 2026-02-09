@@ -36,6 +36,7 @@ class OrderModel {
   final List<String> sellerEvidence;
   final String? sellerResponse;
   final String? disputeResolutionNotes;
+  final List<OrderHistory> history;
 
   OrderModel({
     required this.id,
@@ -62,6 +63,7 @@ class OrderModel {
     this.sellerEvidence = const [],
     this.sellerResponse,
     this.disputeResolutionNotes,
+    this.history = const [],
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
@@ -95,6 +97,11 @@ class OrderModel {
       sellerEvidence: List<String>.from(data['sellerEvidence'] ?? []),
       sellerResponse: data['sellerResponse'],
       disputeResolutionNotes: data['disputeResolutionNotes'],
+      history:
+          (data['history'] as List<dynamic>?)
+              ?.map((h) => OrderHistory.fromMap(h))
+              .toList() ??
+          [],
     );
   }
 
@@ -138,6 +145,23 @@ class OrderModel {
           : [],
       sellerResponse: data['sellerResponse']?.toString(),
       disputeResolutionNotes: data['disputeResolutionNotes']?.toString(),
+      history: data['history'] != null
+          ? (data['history'] is Map
+                ? (data['history'] as Map).entries
+                      .map(
+                        (e) => OrderHistory.fromMap(
+                          Map<String, dynamic>.from(e.value as Map),
+                        ),
+                      )
+                      .toList()
+                : (data['history'] as List)
+                      .map(
+                        (h) => OrderHistory.fromMap(
+                          Map<String, dynamic>.from(h as Map),
+                        ),
+                      )
+                      .toList())
+          : [],
     );
   }
 
@@ -207,4 +231,35 @@ class OrderItem {
   }
 
   double get totalPrice => price * quantity;
+}
+
+class OrderHistory {
+  final OrderStatus status;
+  final DateTime timestamp;
+  final String? message;
+
+  OrderHistory({required this.status, required this.timestamp, this.message});
+
+  factory OrderHistory.fromMap(Map<String, dynamic> map) {
+    return OrderHistory(
+      status: OrderStatus.values.firstWhere(
+        (e) => e.name == (map['status'] ?? 'pending').toString().toLowerCase(),
+        orElse: () => OrderStatus.pending,
+      ),
+      timestamp: map['timestamp'] is int
+          ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
+          : (map['timestamp'] is String
+                ? DateTime.tryParse(map['timestamp']) ?? DateTime.now()
+                : DateTime.now()),
+      message: map['message'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'status': status.name,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'message': message,
+    };
+  }
 }

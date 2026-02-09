@@ -133,16 +133,34 @@ class OrderDetailsDialog extends StatelessWidget {
                   if (order.sellerResponse != null)
                     _buildDetailRow('Seller Response', order.sellerResponse!),
                   if (order.buyerEvidence.isNotEmpty)
-                    _buildDetailRow(
+                    _buildEvidenceRow(
+                      context,
                       'Buyer Evidence',
-                      '${order.buyerEvidence.length} files attached',
+                      order.buyerEvidence,
                     ),
                   if (order.sellerEvidence.isNotEmpty)
-                    _buildDetailRow(
+                    _buildEvidenceRow(
+                      context,
                       'Seller Evidence',
-                      '${order.sellerEvidence.length} files attached',
+                      order.sellerEvidence,
                     ),
                 ],
+
+                // Order History Timeline
+                const Divider(),
+                Text(
+                  'ORDER TIMELINE',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (order.history.isEmpty)
+                  const Text('No tracking events recorded.')
+                else
+                  ...order.history.map((h) => _buildTimelineItem(h)),
               ],
             ),
           ),
@@ -252,6 +270,22 @@ class OrderDetailsDialog extends StatelessWidget {
     }
   }
 
+  Color _getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return AppColors.warning;
+      case OrderStatus.confirmed:
+      case OrderStatus.preparing:
+        return AppColors.info;
+      case OrderStatus.onTheWay:
+        return AppColors.secondary;
+      case OrderStatus.delivered:
+        return AppColors.success;
+      case OrderStatus.cancelled:
+        return AppColors.error;
+    }
+  }
+
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
@@ -343,6 +377,137 @@ class OrderDetailsDialog extends StatelessWidget {
             child: const Text('Confirm Release'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEvidenceRow(
+    BuildContext context,
+    String label,
+    List<String> urls,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label:',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: urls.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () => _viewFullImage(context, urls[index]),
+                  child: Container(
+                    width: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.network(
+                        urls[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.broken_image,
+                              size: 32,
+                              color: AppColors.textHint,
+                            ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineItem(OrderHistory entry) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: _getStatusColor(entry.status),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Container(width: 2, height: 20, color: AppColors.border),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getStatusText(entry.status),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  _formatDate(entry.timestamp),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                if (entry.message != null)
+                  Text(entry.message!, style: GoogleFonts.inter(fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _viewFullImage(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('Could not load image'),
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       ),
     );
   }

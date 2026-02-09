@@ -4,6 +4,8 @@ import 'realtime_database_service.dart';
 import 'notification_service.dart';
 import 'moderation_service.dart';
 import 'fcm_service.dart';
+import 'user_service.dart';
+import '../models/user_model.dart';
 
 class SecurityException implements Exception {
   final String message;
@@ -119,17 +121,43 @@ class MessageService {
 
       // Trigger Push Notification if channel is push
       if (broadcast.type == MessageType.push) {
-        await FcmService.sendNotificationToUser(
-          userId:
-              broadcast.receiverId, // This could be 'everyone', 'seller', etc.
-          title: broadcast.title ?? 'Message from Admin',
-          body: broadcast.content,
-          type: 'broadcast',
-          data: {
-            'broadcastId': newBroadcastRef.key,
-            'target': broadcast.receiverId,
-          },
-        );
+        final target = broadcast.receiverId.toLowerCase();
+
+        if (target == 'everyone' ||
+            target == 'buyer' ||
+            target == 'seller' ||
+            target == 'courier') {
+          // Broadcast expansion: Fetch users and send individually
+          final users = await UserService.getAllUsersOnce();
+          for (final user in users) {
+            bool isTarget =
+                (target == 'everyone') ||
+                (target == 'buyer' && user.userType == UserType.buyer) ||
+                (target == 'seller' && user.userType == UserType.seller) ||
+                (target == 'courier' && user.userType == UserType.courier);
+
+            if (isTarget &&
+                user.fcmToken != null &&
+                user.fcmToken!.isNotEmpty) {
+              await FcmService.sendNotificationToUser(
+                userId: user.id,
+                title: broadcast.title ?? 'Broadcast from Admin',
+                body: broadcast.content,
+                type: 'broadcast',
+                data: {'broadcastId': newBroadcastRef.key, 'senderId': 'admin'},
+              );
+            }
+          }
+        } else {
+          // Single user notification (original logic)
+          await FcmService.sendNotificationToUser(
+            userId: broadcast.receiverId,
+            title: broadcast.title ?? 'Message from Admin',
+            body: broadcast.content,
+            type: 'broadcast',
+            data: {'broadcastId': newBroadcastRef.key},
+          );
+        }
       }
     } catch (e) {
       print('❌ Error sending broadcast: $e');

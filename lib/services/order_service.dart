@@ -86,6 +86,44 @@ class OrderService {
         if (status == OrderStatus.delivered)
           'deliveredAt': DateTime.now().millisecondsSinceEpoch,
       });
+
+      // Add To History
+      await _ordersRef.child(orderId).child('history').push().set({
+        'status': status.name,
+        'timestamp': ServerValue.timestamp,
+        'message': 'Order status updated to ${status.name}',
+      });
+
+      // Fetch order details for notification
+      final order = await getOrderById(orderId);
+      if (order != null) {
+        final statusText = status.name
+            .replaceAllMapped(
+              RegExp(r'([A-Z])'),
+              (match) => ' ${match.group(0)}',
+            )
+            .toLowerCase();
+
+        // Notify Buyer
+        await FcmService.sendNotificationToUser(
+          userId: order.buyerId,
+          title: 'Order $statusText',
+          body:
+              'Your order #${orderId.substring(0, 5)}... has been updated to $statusText.',
+          type: 'order_update',
+          data: {'orderId': orderId},
+        );
+
+        // Notify Seller
+        await FcmService.sendNotificationToUser(
+          userId: order.sellerId,
+          title: 'Order $statusText',
+          body:
+              'Order #${orderId.substring(0, 5)}... status changed to $statusText.',
+          type: 'order_update',
+          data: {'orderId': orderId},
+        );
+      }
     } catch (e) {
       print('Error updating order status: $e');
       rethrow;
@@ -99,6 +137,33 @@ class OrderService {
   ) async {
     try {
       await _ordersRef.child(orderId).update({'escrowStatus': status.name});
+
+      final order = await getOrderById(orderId);
+      if (order != null) {
+        // Notify both parties about financial update
+        final title = status == EscrowStatus.released
+            ? 'Funds Released'
+            : 'Funds Update';
+        final body = status == EscrowStatus.released
+            ? 'Escrow funds for Order #${orderId.substring(0, 5)} have been released.'
+            : 'Escrow status for Order #${orderId.substring(0, 5)} is now ${status.name}.';
+
+        await FcmService.sendNotificationToUser(
+          userId: order.buyerId,
+          title: title,
+          body: body,
+          type: 'escrow_update',
+          data: {'orderId': orderId},
+        );
+
+        await FcmService.sendNotificationToUser(
+          userId: order.sellerId,
+          title: title,
+          body: body,
+          type: 'escrow_update',
+          data: {'orderId': orderId},
+        );
+      }
     } catch (e) {
       print('Error updating escrow status: $e');
       rethrow;
@@ -116,6 +181,19 @@ class OrderService {
         'trackingNumber': trackingNumber,
         'trackingProvider': provider,
       });
+
+      final order = await getOrderById(orderId);
+      if (order != null) {
+        // Notify Buyer specifically about tracking
+        await FcmService.sendNotificationToUser(
+          userId: order.buyerId,
+          title: 'Tracking Updated',
+          body:
+              'Tracking info added for your order. Provider: $provider, No: $trackingNumber',
+          type: 'tracking_update',
+          data: {'orderId': orderId},
+        );
+      }
     } catch (e) {
       print('Error updating tracking info: $e');
       rethrow;

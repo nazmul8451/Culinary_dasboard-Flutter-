@@ -7,7 +7,6 @@ import '../../core/constants/app_sizes.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../widgets/order_details_dialog.dart';
-import 'package:firebase_database/firebase_database.dart'; // Added for direct DB access related to testing feature
 
 import '../../widgets/shimmer_loading.dart';
 
@@ -29,52 +28,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     super.dispose();
   }
 
-  void _createTestDispute() async {
-    final newOrderRef = FirebaseDatabase.instance.ref('orders').push();
-    final now = DateTime.now();
-    await newOrderRef.set({
-      'id': newOrderRef.key,
-      'buyerId': 'test_buyer_1',
-      'sellerId': 'test_seller_1',
-      'buyerName': 'Test Buyer',
-      'sellerName': 'Test Seller',
-      'items': [
-        {'productName': 'Test Item', 'quantity': 1, 'totalPrice': 50.0},
-      ],
-      'totalAmount': 50.0,
-      'deliveryFee': 5.0,
-      'grandTotal': 55.0,
-      'status': 'delivered',
-      'escrowStatus': 'held',
-      'deliveryAddress': '123 Test St',
-      'createdAt': now.millisecondsSinceEpoch,
-      'hasDispute': true,
-      'disputeReason': 'Item not as described (Test)',
-      'buyerEvidence': ['Evidence A'],
-      'sellerResponse': 'This is a test response.',
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Test Dispute Created! Refresh list if needed.'),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: kDebugMode
-          ? FloatingActionButton.extended(
-              onPressed: _createTestDispute,
-              label: const Text('Create Test Dispute'),
-              icon: const Icon(Icons.bug_report),
-              backgroundColor: AppColors.error,
-            )
-          : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final screenWidth = constraints.maxWidth;
@@ -250,6 +207,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 order.sellerName.toLowerCase().contains(
                                   _searchQuery,
                                 ) ||
+                                (order.courierName?.toLowerCase().contains(
+                                      _searchQuery,
+                                    ) ??
+                                    false) ||
                                 order.id.toLowerCase().contains(_searchQuery),
                           )
                           .toList();

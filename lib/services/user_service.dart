@@ -100,6 +100,33 @@ class UserService {
     }).asBroadcastStream();
   }
 
+  /// Get all users once (for broadcasts)
+  static Future<List<UserModel>> getAllUsersOnce() async {
+    try {
+      final List<UserModel> allUsers = [];
+      final nodes = ['buyer', 'seller', 'courier'];
+
+      for (final node in nodes) {
+        final snapshot = await RealtimeDatabaseService.ref(node).get();
+        if (snapshot.exists && snapshot.value != null) {
+          final data = Map<dynamic, dynamic>.from(snapshot.value as Map);
+          data.forEach((key, value) {
+            final userData = Map<dynamic, dynamic>.from(value as Map);
+            // Assign userType based on node
+            userData['userType'] = node;
+            allUsers.add(
+              UserModel.fromRealtimeDatabase(key.toString(), userData),
+            );
+          });
+        }
+      }
+      return allUsers;
+    } catch (e) {
+      print('❌ Error fetching all users once: $e');
+      return [];
+    }
+  }
+
   /// Get users by type
   static Stream<List<UserModel>> getUsersByType(UserType type) {
     print('🔍 Getting users of type: ${type.name}');
