@@ -29,7 +29,7 @@ class OverviewScreen extends StatelessWidget {
 
         // Adjust childAspectRatio based on columns
         // Decreasing ratio makes cards taller to prevent overflow
-        final childAspectRatio = isMobile ? 2.0 : (isNarrow ? 1.7 : 1.8);
+        final childAspectRatio = isMobile ? 1.3 : (isNarrow ? 1.7 : 1.8);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSizes.paddingLG),

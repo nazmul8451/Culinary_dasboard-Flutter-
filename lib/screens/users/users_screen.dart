@@ -42,97 +42,224 @@ class _UsersScreenState extends State<UsersScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final isMobile = screenWidth < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-        return Padding(
-          padding: EdgeInsets.all(
-            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+    if (isMobile) {
+      return CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingMD),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'User Management',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ).animateFadeInUp(),
+                  const SizedBox(height: AppSizes.paddingSM),
+                  Text(
+                    'Manage buyers, sellers, and couriers',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ).animateFadeInUp(delay: 100),
+                  const SizedBox(height: AppSizes.paddingLG),
+                  _buildSearchField(),
+                  const SizedBox(height: AppSizes.paddingMD),
+                  _buildTabBar(isMobile),
+                  const SizedBox(height: AppSizes.paddingMD),
+                ],
+              ),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'User Management',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ).animateFadeInUp(),
-              const SizedBox(height: AppSizes.paddingSM),
-              Text(
-                'Manage buyers, sellers, and couriers',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 12 : 14,
-                  color: AppColors.textSecondary,
-                ),
-              ).animateFadeInUp(delay: 100),
-              const SizedBox(height: AppSizes.paddingLG),
+          _buildSliverUserList(),
+        ],
+      );
+    }
 
-              // Search Bar
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search users by name or email...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+    return Padding(
+      padding: EdgeInsets.all(
+        isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'User Management',
+            style: GoogleFonts.inter(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ).animateFadeInUp(),
+          const SizedBox(height: AppSizes.paddingSM),
+          Text(
+            'Manage buyers, sellers, and couriers',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ).animateFadeInUp(delay: 100),
+          const SizedBox(height: AppSizes.paddingLG),
+          _buildSearchField(),
+          const SizedBox(height: AppSizes.paddingMD),
+          _buildTabBar(isMobile),
+          const SizedBox(height: AppSizes.paddingMD),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUserTable(null),
+                _buildUserTable(null, onlyPending: true),
+                _buildUserTable(UserType.buyer),
+                _buildUserTable(UserType.seller),
+                _buildUserTable(UserType.courier),
+              ],
+            ).animateFadeInUp(delay: 200),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search users by name or email...',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value.toLowerCase();
+        });
+      },
+    );
+  }
+
+  Widget _buildTabBar(bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSM),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: isMobile,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.textSecondary,
+        indicatorColor: AppColors.primary,
+        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        onTap: (index) {
+          if (isMobile) setState(() {});
+        },
+        tabs: const [
+          Tab(text: 'All Users'),
+          Tab(text: 'Verification'),
+          Tab(text: 'Buyers'),
+          Tab(text: 'Sellers'),
+          Tab(text: 'Couriers'),
+        ],
+      ),
+    );
+  }
+
+  UserType? _getSelectedType() {
+    switch (_tabController.index) {
+      case 2:
+        return UserType.buyer;
+      case 3:
+        return UserType.seller;
+      case 4:
+        return UserType.courier;
+      default:
+        return null;
+    }
+  }
+
+  bool _getOnlyPending() => _tabController.index == 1;
+
+  Widget _buildSliverUserList() {
+    final filterType = _getSelectedType();
+    final onlyPending = _getOnlyPending();
+
+    return StreamBuilder<List<UserModel>>(
+      stream: filterType == null
+          ? UserService.getAllUsers()
+          : UserService.getUsersByType(filterType),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.paddingMD),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ShimmerLoading.rounded(height: 150),
+                ),
+                childCount: 5,
+              ),
+            ),
+          );
+        }
+
+        final usersData = snapshot.data ?? [];
+        if (usersData.isEmpty) {
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 64,
+                    color: AppColors.textHint,
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.toLowerCase();
-                  });
-                },
+                  SizedBox(height: AppSizes.paddingMD),
+                  Text(
+                    'No users found',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
               ),
+            ),
+          );
+        }
 
-              const SizedBox(height: AppSizes.paddingMD),
+        final filteredUsers = usersData.where((user) {
+          final matchesSearch =
+              _searchQuery.isEmpty ||
+              user.name.toLowerCase().contains(_searchQuery) ||
+              user.email.toLowerCase().contains(_searchQuery);
+          final matchesPending =
+              !onlyPending ||
+              user.verificationStatus == VerificationStatus.pending;
+          return matchesSearch && matchesPending;
+        }).toList();
 
-              // Tabs
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSM),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: isMobile,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primary,
-                  labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  tabs: const [
-                    Tab(text: 'All Users'),
-                    Tab(text: 'Verification'),
-                    Tab(text: 'Buyers'),
-                    Tab(text: 'Sellers'),
-                    Tab(text: 'Couriers'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSizes.paddingMD),
-
-              // Tab Content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildUserTable(null),
-                    _buildUserTable(null, onlyPending: true),
-                    _buildUserTable(UserType.buyer),
-                    _buildUserTable(UserType.seller),
-                    _buildUserTable(UserType.courier),
-                  ],
-                ).animateFadeInUp(delay: 200),
-              ),
-            ],
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.paddingMD),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildUserCard(filteredUsers[index]),
+              );
+            }, childCount: filteredUsers.length),
           ),
         );
       },
@@ -477,30 +604,18 @@ class _UsersScreenState extends State<UsersScreen>
               : const Text('-'),
         ),
         DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit, size: 18),
-                onPressed: () => _showUserActions(user),
-                tooltip: 'Edit',
-                color: AppColors.primary,
+          TextButton.icon(
+            onPressed: () => _showUserActions(user),
+            icon: const Icon(Icons.more_horiz, size: 16),
+            label: const Text('Actions'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
-              if (user.status == UserStatus.active)
-                IconButton(
-                  icon: const Icon(Icons.block, size: 18),
-                  onPressed: () => _banUser(user),
-                  tooltip: 'Ban',
-                  color: AppColors.error,
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.check_circle, size: 18),
-                  onPressed: () => _activateUser(user),
-                  tooltip: 'Activate',
-                  color: AppColors.success,
-                ),
-            ],
+            ),
           ),
         ),
       ],

@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for ios - '
@@ -61,5 +58,15 @@ class DefaultFirebaseOptions {
     databaseURL: 'https://culinarytalesapp-default-rtdb.firebaseio.com',
     storageBucket: 'culinarytalesapp.firebasestorage.app',
     measurementId: 'G-SWP6CX1E3B',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAOkE2mGZdOePZUuKnM8s-6OIadOHiu9CE',
+    appId:
+        '1:888497741298:android:79d8aac5be12c69221df6b', // Note: Placeholder appId
+    messagingSenderId: '888497741298',
+    projectId: 'culinarytalesapp',
+    databaseURL: 'https://culinarytalesapp-default-rtdb.firebaseio.com',
+    storageBucket: 'culinarytalesapp.firebasestorage.app',
   );
 }

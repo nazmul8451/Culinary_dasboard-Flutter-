@@ -64,7 +64,7 @@ class StatCard extends StatelessWidget {
                       // Icon Container
                       Container(
                         padding: EdgeInsets.all(
-                          isXSmall ? AppSizes.paddingSM : AppSizes.paddingMD,
+                          isXSmall ? AppSizes.paddingXS : AppSizes.paddingSM,
                         ),
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.08),

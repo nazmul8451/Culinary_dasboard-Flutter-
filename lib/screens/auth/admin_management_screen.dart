@@ -88,7 +88,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-
         return Padding(
           padding: EdgeInsets.all(
             isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,

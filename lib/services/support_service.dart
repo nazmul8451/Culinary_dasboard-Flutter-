@@ -146,7 +146,7 @@ class SupportService {
       }
       print('📊 New Tickets Count: $count');
       return count;
-    });
+    }).asBroadcastStream();
   }
 
   static Future<void> updateTicketStatus(

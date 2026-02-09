@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../widgets/stat_card.dart';
@@ -43,7 +43,7 @@ class FinancialScreen extends StatelessWidget {
                 snapshot.connectionState == ConnectionState.waiting;
             final stats = snapshot.data ?? {};
             final crossAxisCount = isMobile ? 1 : (isNarrow ? 2 : 4);
-            final childAspectRatio = isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8);
+            final childAspectRatio = isMobile ? 1.3 : (isNarrow ? 1.5 : 1.4);
 
             return ShimmerSwitcher(
               isLoading: isLoading,
@@ -495,10 +495,13 @@ class FinancialScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   const url =
                       'https://dashboard.stripe.com/acct_1C4VxjLWripuEZOe/dashboard';
-                  html.window.open(url, '_blank');
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
                 },
                 icon: const Icon(Icons.visibility),
                 label: const Text('View Stripe Dashboard'),
@@ -753,7 +756,7 @@ class FinancialScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: AppSizes.paddingMD,
             mainAxisSpacing: AppSizes.paddingMD,
-            childAspectRatio: isMobile ? 2.2 : (isNarrow ? 1.7 : 1.8),
+            childAspectRatio: isMobile ? 1.3 : (isNarrow ? 1.7 : 1.8),
             children: List.generate(
               4,
               (index) => ShimmerLoading.rounded(height: 100),

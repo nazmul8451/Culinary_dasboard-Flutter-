@@ -73,7 +73,7 @@ class NotificationService {
       }
       notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return notifications;
-    });
+    }).asBroadcastStream();
   }
 
   static Stream<int> getUnreadCount() {
@@ -88,7 +88,7 @@ class NotificationService {
         });
       }
       return count;
-    });
+    }).asBroadcastStream();
   }
 
   static Future<void> markAllAsRead() async {

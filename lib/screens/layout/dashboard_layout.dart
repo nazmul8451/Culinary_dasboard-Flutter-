@@ -248,24 +248,28 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                   selectedRoute: selectedRoute,
                   onSelected: _onMenuItemSelected,
                   header: Container(
-                    height: 100,
+                    height: Responsive.isMobile(context) ? 80 : 100,
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Responsive.isMobile(context) ? 12 : 20,
+                    ),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: EdgeInsets.all(
+                            Responsive.isMobile(context) ? 6 : 8,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.restaurant_menu,
-                            size: 28,
+                            size: Responsive.isMobile(context) ? 20 : 28,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: Responsive.isMobile(context) ? 10 : 16),
                         Expanded(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -275,7 +279,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                 'Culinary Tales',
                                 style: GoogleFonts.inter(
                                   color: AppColors.textPrimary,
-                                  fontSize: 16,
+                                  fontSize: Responsive.isMobile(context)
+                                      ? 14
+                                      : 16,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -283,7 +289,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                                 'Admin Console',
                                 style: GoogleFonts.inter(
                                   color: AppColors.textSecondary,
-                                  fontSize: 11,
+                                  fontSize: Responsive.isMobile(context)
+                                      ? 9
+                                      : 11,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),

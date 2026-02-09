@@ -10,23 +10,38 @@ import 'screens/auth/login_screen.dart';
 import 'screens/layout/dashboard_layout.dart';
 
 void main() async {
+  print('🚀 Starting Culinary Admin Dashboard...');
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  print('🔥 Initializing Firebase...');
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase Initialized');
+  } catch (e) {
+    print('❌ Firebase Initialization Error: $e');
+  }
 
   // Initialize Realtime Database
+  print('💾 Initializing Realtime Database...');
   await RealtimeDatabaseService.initialize();
 
   // Initialize FCM Service
+  print('🔔 Initializing FCM...');
   try {
     await FcmService.initialize();
+    print('✅ FCM Initialized');
   } catch (e) {
-    print("FCM Initialization Failed: $e");
+    print("❌ FCM Initialization Failed: $e");
   }
 
   // Initialize GetX controllers
+  print('🎮 Initializing Controllers...');
   Get.put(AuthController());
   Get.put(DashboardController());
 
+  print('🏁 Running App...');
   runApp(const MyApp());
 }
 
