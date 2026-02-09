@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../models/user_model.dart';
 import 'realtime_database_service.dart';
+import 'fcm_service.dart';
 
 /// Service for managing user data from Realtime Database
 class UserService {
@@ -188,6 +189,22 @@ class UserService {
 
           await nodeRef.update(updates);
           print('✅ Updated verification for user $userId in $node node');
+
+          // Trigger push notification for status update
+          unawaited(
+            FcmService.sendNotificationToUser(
+              userId: userId,
+              title: status == VerificationStatus.verified
+                  ? 'Account Verified! 🎉'
+                  : 'Verification Update',
+              body: status == VerificationStatus.verified
+                  ? 'Congratulations! Your account has been verified.'
+                  : 'Your verification status has been updated to ${status.name}.' +
+                        (reason != null ? ' Reason: $reason' : ''),
+              type: 'verification_update',
+            ),
+          );
+
           return;
         }
       }
@@ -333,6 +350,15 @@ class UserService {
   /// Update FCM token for a user
   static Future<void> updateFcmToken(String userId, String token) async {
     try {
+      // 1. Update in the flat 'users' node (matching client app snippet)
+      final usersRef = RealtimeDatabaseService.ref('users/$userId');
+      await usersRef.update({
+        'fcmToken': token,
+        'fcmTokenUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      print('✅ Updated FCM token for user $userId in flat users node');
+
+      // 2. Also update in the type-specific nodes for backward/parallel compatibility
       final nodes = ['buyer', 'seller', 'courier'];
       for (final node in nodes) {
         final nodeRef = RealtimeDatabaseService.ref('$node/$userId');
@@ -346,7 +372,6 @@ class UserService {
           return;
         }
       }
-      print('⚠️ User $userId not found for FCM token update');
     } catch (e) {
       print('❌ Error updating FCM token: $e');
       rethrow;

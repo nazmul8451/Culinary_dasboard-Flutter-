@@ -3,6 +3,7 @@ import '../models/message_model.dart';
 import 'realtime_database_service.dart';
 import 'notification_service.dart';
 import 'moderation_service.dart';
+import 'fcm_service.dart';
 
 class SecurityException implements Exception {
   final String message;
@@ -116,8 +117,20 @@ class MessageService {
 
       print('✅ Broadcast sent to ${broadcast.receiverId}');
 
-      // In a real app, a Cloud Function would trigger Push/Email/SMS here
-      // Based on broadcast.type
+      // Trigger Push Notification if channel is push
+      if (broadcast.type == MessageType.push) {
+        await FcmService.sendNotificationToUser(
+          userId:
+              broadcast.receiverId, // This could be 'everyone', 'seller', etc.
+          title: broadcast.title ?? 'Message from Admin',
+          body: broadcast.content,
+          type: 'broadcast',
+          data: {
+            'broadcastId': newBroadcastRef.key,
+            'target': broadcast.receiverId,
+          },
+        );
+      }
     } catch (e) {
       print('❌ Error sending broadcast: $e');
       rethrow;

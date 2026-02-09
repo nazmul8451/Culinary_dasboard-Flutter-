@@ -1,6 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
+import 'realtime_database_service.dart';
 
 class FcmService {
   static final FirebaseMessaging _firebaseMessaging =
@@ -84,22 +86,27 @@ class FcmService {
     required String type,
     Map<String, dynamic>? data,
   }) async {
-    // Since we don't have a backend API exposed here, we will write to a
-    // 'notification_requests' node which a Cloud Function would listen to.
-    // This completes the "System triggers... notifies users" workflow requirement from the client side.
+    try {
+      print('🚀 Triggering Notification to $userId: $title - $body');
 
-    // Implementation would be in NotificationService or a dedicated service
-    // For now, we'll log it as a simulation of the trigger.
-    print('🚀 Triggering Notification to $userId: $title - $body');
+      // Write to 'notification_requests' node which a Cloud Function should listen to
+      final requestRef = RealtimeDatabaseService.ref(
+        'notification_requests',
+      ).push();
+      await requestRef.set({
+        'userId': userId,
+        'title': title,
+        'body': body,
+        'type': type,
+        'data': data,
+        'timestamp': ServerValue.timestamp,
+        'status': 'pending',
+      });
 
-    // In a real implementation with Cloud Functions:
-    // await FirebaseDatabase.instance.ref('notification_requests').push().set({
-    //   'userId': userId,
-    //   'title': title,
-    //   'body': body,
-    //   'type': type,
-    //   'data': data,
-    //   'timestamp': ServerValue.timestamp,
-    // });
+      print('✅ Notification request created successfully');
+    } catch (e) {
+      print('❌ Error triggering notification: $e');
+      rethrow;
+    }
   }
 }

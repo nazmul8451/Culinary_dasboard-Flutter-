@@ -7,6 +7,7 @@ import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
 import '../../core/utils/animations.dart';
+import '../../services/fcm_service.dart';
 
 import '../../widgets/shimmer_loading.dart';
 
@@ -569,6 +570,17 @@ class _UsersScreenState extends State<UsersScreen>
                 _openChat(user);
               },
             ),
+            ListTile(
+              leading: const Icon(
+                Icons.notifications_active,
+                color: AppColors.primary,
+              ),
+              title: const Text('Send Push Notification'),
+              onTap: () {
+                Navigator.pop(context);
+                _showPushNotificationDialog(user);
+              },
+            ),
           ],
         ),
       ),
@@ -740,6 +752,101 @@ class _UsersScreenState extends State<UsersScreen>
     showDialog(
       context: context,
       builder: (context) => ChatDialog(user: user),
+    );
+  }
+
+  void _showPushNotificationDialog(UserModel user) {
+    final titleController = TextEditingController(text: 'Update from Admin');
+    final bodyController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            'Send Push Notification to ${user.name}',
+            style: GoogleFonts.inter(),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Notification Title',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingMD),
+              TextField(
+                controller: bodyController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Notification Body',
+                  hintText: 'Enter message content...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (bodyController.text.isEmpty) return;
+                      setDialogState(() => isLoading = true);
+                      try {
+                        await FcmService.sendNotificationToUser(
+                          userId: user.id,
+                          title: titleController.text,
+                          body: bodyController.text,
+                          type: 'admin_direct',
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Notification triggered successfully',
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to send notification: $e'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Send'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

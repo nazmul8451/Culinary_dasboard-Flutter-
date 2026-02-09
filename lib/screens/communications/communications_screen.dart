@@ -301,16 +301,18 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                     ),
                   ),
                   const SizedBox(height: AppSizes.paddingLG),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _sendBroadcast,
-                      icon: const Icon(Icons.send),
-                      label: const Text('Send Broadcast'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(AppSizes.paddingMD),
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                  Center(
+                    child: SizedBox(
+                      width: 300,
+                      child: ElevatedButton.icon(
+                        onPressed: _sendBroadcast,
+                        icon: const Icon(Icons.send),
+                        label: const Text('Send Broadcast'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(AppSizes.paddingMD),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   ),
