@@ -397,53 +397,134 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
   Widget _buildChatsTab(bool isSmallScreen) {
     return StreamBuilder<List<UserModel>>(
       stream: UserService.getAllUsers(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
-        final users = snapshot.data ?? [];
-        return ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final user = users[index];
-            return StreamBuilder<int>(
-              stream: MessageService.getUnreadCount(user.id),
-              builder: (context, unreadSnapshot) {
-                final unreadCount = unreadSnapshot.data ?? 0;
-                return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    ),
-                  ),
-                  title: Row(
-                    children: [
-                      Text(user.name.isNotEmpty ? user.name : 'Unknown User'),
-                      if (unreadCount > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            unreadCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+        }
+
+        final users = userSnapshot.data ?? [];
+        // Create a modifiable copy for sorting
+        final sortedUsers = List<UserModel>.from(users);
+
+        return StreamBuilder<Map<String, DateTime>>(
+          stream: MessageService.getLastMessageTimes(),
+          builder: (context, timeSnapshot) {
+            final lastTimes = timeSnapshot.data ?? {};
+
+            // Sort users descending by last message time
+            sortedUsers.sort((a, b) {
+              final timeA = lastTimes[a.id];
+              final timeB = lastTimes[b.id];
+
+              if (timeA == null && timeB == null) return 0;
+              if (timeA == null) return 1;
+              if (timeB == null) return -1;
+
+              return timeB.compareTo(timeA);
+            });
+
+            return ListView.separated(
+              itemCount: sortedUsers.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final user = sortedUsers[index];
+
+                return StreamBuilder<int>(
+                  stream: MessageService.getUnreadCount(user.id),
+                  builder: (context, unreadSnapshot) {
+                    final unreadCount = unreadSnapshot.data ?? 0;
+                    final lastMsgTime = lastTimes[user.id];
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundImage:
+                            user.profileImage != null &&
+                                user.profileImage!.isNotEmpty
+                            ? NetworkImage(user.profileImage!)
+                            : null,
+                        child:
+                            user.profileImage != null &&
+                                user.profileImage!.isNotEmpty
+                            ? null
+                            : Text(
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                      title: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              user.name.isNotEmpty ? user.name : 'Unknown User',
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontWeight: unreadCount > 0
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  subtitle: Text(user.email),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openChat(user),
+                          if (unreadCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                unreadCount.toString(),
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      subtitle: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          if (lastMsgTime != null)
+                            Text(
+                              _formatTime(lastMsgTime),
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: unreadCount > 0
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                                fontWeight: unreadCount > 0
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                        ],
+                      ),
+                      onTap: () => _openChat(user),
+                    );
+                  },
                 );
               },
             );
@@ -451,6 +532,24 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
         );
       },
     );
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inDays > 0) {
+      if (difference.inDays > 7) {
+        return '${time.day}/${time.month}';
+      }
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   IconData _getChannelIcon(MessageType type) {

@@ -31,7 +31,11 @@ class OrderModel {
   final bool hasDispute;
   final String? trackingNumber;
   final String? trackingProvider;
-  final String? disputeDetails;
+  final String? disputeReason;
+  final List<String> buyerEvidence;
+  final List<String> sellerEvidence;
+  final String? sellerResponse;
+  final String? disputeResolutionNotes;
 
   OrderModel({
     required this.id,
@@ -53,7 +57,11 @@ class OrderModel {
     this.hasDispute = false,
     this.trackingNumber,
     this.trackingProvider,
-    this.disputeDetails,
+    this.disputeReason,
+    this.buyerEvidence = const [],
+    this.sellerEvidence = const [],
+    this.sellerResponse,
+    this.disputeResolutionNotes,
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
@@ -82,7 +90,11 @@ class OrderModel {
       hasDispute: data['hasDispute'] ?? false,
       trackingNumber: data['trackingNumber'],
       trackingProvider: data['trackingProvider'],
-      disputeDetails: data['disputeDetails'],
+      disputeReason: data['disputeReason'],
+      buyerEvidence: List<String>.from(data['buyerEvidence'] ?? []),
+      sellerEvidence: List<String>.from(data['sellerEvidence'] ?? []),
+      sellerResponse: data['sellerResponse'],
+      disputeResolutionNotes: data['disputeResolutionNotes'],
     );
   }
 
@@ -117,7 +129,15 @@ class OrderModel {
       hasDispute: data['hasDispute'] as bool? ?? false,
       trackingNumber: data['trackingNumber']?.toString(),
       trackingProvider: data['trackingProvider']?.toString(),
-      disputeDetails: data['disputeDetails']?.toString(),
+      disputeReason: data['disputeReason']?.toString(),
+      buyerEvidence: data['buyerEvidence'] != null
+          ? List<String>.from(data['buyerEvidence'])
+          : [],
+      sellerEvidence: data['sellerEvidence'] != null
+          ? List<String>.from(data['sellerEvidence'])
+          : [],
+      sellerResponse: data['sellerResponse']?.toString(),
+      disputeResolutionNotes: data['disputeResolutionNotes']?.toString(),
     );
   }
 

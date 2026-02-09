@@ -128,10 +128,20 @@ class OrderDetailsDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    order.disputeDetails ?? 'No details provided.',
-                    style: GoogleFonts.inter(fontSize: 13),
-                  ),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Reason', order.disputeReason ?? 'N/A'),
+                  if (order.sellerResponse != null)
+                    _buildDetailRow('Seller Response', order.sellerResponse!),
+                  if (order.buyerEvidence.isNotEmpty)
+                    _buildDetailRow(
+                      'Buyer Evidence',
+                      '${order.buyerEvidence.length} files attached',
+                    ),
+                  if (order.sellerEvidence.isNotEmpty)
+                    _buildDetailRow(
+                      'Seller Evidence',
+                      '${order.sellerEvidence.length} files attached',
+                    ),
                 ],
               ],
             ),
@@ -288,6 +298,7 @@ class OrderDetailsDialog extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Refund Buyer'),
           ),
+
           ElevatedButton(
             onPressed: () async {
               await OrderService.resolveDispute(

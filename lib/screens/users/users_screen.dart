@@ -324,10 +324,17 @@ class _UsersScreenState extends State<UsersScreen>
                   backgroundColor: _getUserTypeColor(
                     user.userType,
                   ).withOpacity(0.1),
-                  child: Icon(
-                    _getUserTypeIcon(user.userType),
-                    color: _getUserTypeColor(user.userType),
-                  ),
+                  backgroundImage:
+                      user.profileImage != null && user.profileImage!.isNotEmpty
+                      ? NetworkImage(user.profileImage!)
+                      : null,
+                  child:
+                      user.profileImage != null && user.profileImage!.isNotEmpty
+                      ? null
+                      : Icon(
+                          _getUserTypeIcon(user.userType),
+                          color: _getUserTypeColor(user.userType),
+                        ),
                 ),
                 const SizedBox(width: AppSizes.paddingMD),
                 Expanded(
@@ -426,11 +433,18 @@ class _UsersScreenState extends State<UsersScreen>
                 backgroundColor: _getUserTypeColor(
                   user.userType,
                 ).withOpacity(0.1),
-                child: Icon(
-                  _getUserTypeIcon(user.userType),
-                  size: 16,
-                  color: _getUserTypeColor(user.userType),
-                ),
+                backgroundImage:
+                    user.profileImage != null && user.profileImage!.isNotEmpty
+                    ? NetworkImage(user.profileImage!)
+                    : null,
+                child:
+                    user.profileImage != null && user.profileImage!.isNotEmpty
+                    ? null
+                    : Icon(
+                        _getUserTypeIcon(user.userType),
+                        size: 16,
+                        color: _getUserTypeColor(user.userType),
+                      ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -578,11 +592,18 @@ class _UsersScreenState extends State<UsersScreen>
                   backgroundColor: _getUserTypeColor(
                     user.userType,
                   ).withOpacity(0.1),
-                  child: Icon(
-                    _getUserTypeIcon(user.userType),
-                    size: 40,
-                    color: _getUserTypeColor(user.userType),
-                  ),
+                  backgroundImage:
+                      user.profileImage != null && user.profileImage!.isNotEmpty
+                      ? NetworkImage(user.profileImage!)
+                      : null,
+                  child:
+                      user.profileImage != null && user.profileImage!.isNotEmpty
+                      ? null
+                      : Icon(
+                          _getUserTypeIcon(user.userType),
+                          size: 40,
+                          color: _getUserTypeColor(user.userType),
+                        ),
                 ),
               ),
               const SizedBox(height: AppSizes.paddingLG),

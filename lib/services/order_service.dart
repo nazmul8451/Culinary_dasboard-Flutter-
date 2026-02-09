@@ -1,6 +1,9 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/order_model.dart';
+
 import 'realtime_database_service.dart';
+import 'fcm_service.dart';
+import 'payment_service.dart';
 
 /// Service for managing order data from Realtime Database
 class OrderService {
@@ -136,6 +139,49 @@ class OrderService {
             ? OrderStatus.cancelled.name
             : OrderStatus.delivered.name,
       };
+
+      // Process Payment/Refund
+      final orderSnapshot = await _ordersRef.child(orderId).get();
+      if (orderSnapshot.exists) {
+        final orderData = orderSnapshot.value as Map;
+        final totalAmount = (orderData['totalAmount'] ?? 0).toDouble();
+
+        if (refundBuyer) {
+          await PaymentService.processRefund(
+            orderId,
+            totalAmount,
+            resolutionNotes,
+          );
+        } else {
+          await PaymentService.releaseEscrow(
+            orderId,
+            totalAmount,
+            orderData['sellerId'],
+          );
+        }
+
+        // Notify Parties
+        await FcmService.sendNotificationToUser(
+          userId: orderData['buyerId'],
+          title: 'Dispute Resolved',
+          body: refundBuyer
+              ? 'Dispute resolved in your favor. Refund processed.'
+              : 'Dispute resolved. Funds released to vendor.',
+          type: 'dispute',
+          data: {'orderId': orderId},
+        );
+
+        await FcmService.sendNotificationToUser(
+          userId: orderData['sellerId'],
+          title: 'Dispute Resolved',
+          body: refundBuyer
+              ? 'Dispute resolved in buyer favor. Funds refunded.'
+              : 'Dispute resolved in your favor. Funds released.',
+          type: 'dispute',
+          data: {'orderId': orderId},
+        );
+      }
+
       await _ordersRef.child(orderId).update(updates);
     } catch (e) {
       print('Error resolving dispute: $e');

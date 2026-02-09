@@ -14,6 +14,7 @@ class TicketModel {
   final TicketStatus status;
   final DateTime createdAt;
   final List<TicketReply> replies;
+  final List<String> attachments;
 
   TicketModel({
     required this.id,
@@ -24,6 +25,7 @@ class TicketModel {
     required this.status,
     required this.createdAt,
     this.replies = const [],
+    this.attachments = const [],
   });
 
   factory TicketModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -45,6 +47,9 @@ class TicketModel {
           ? (map['replies'] as Map).entries
                 .map((e) => TicketReply.fromMap(e.key, e.value))
                 .toList()
+          : [],
+      attachments: map['attachments'] != null
+          ? List<String>.from(map['attachments'])
           : [],
     );
   }

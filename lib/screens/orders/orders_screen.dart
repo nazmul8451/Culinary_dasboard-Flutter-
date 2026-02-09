@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:data_table_2/data_table_2.dart';
@@ -6,6 +7,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../widgets/order_details_dialog.dart';
+import 'package:firebase_database/firebase_database.dart'; // Added for direct DB access related to testing feature
 
 import '../../widgets/shimmer_loading.dart';
 
@@ -27,110 +29,155 @@ class _OrdersScreenState extends State<OrdersScreen> {
     super.dispose();
   }
 
+  void _createTestDispute() async {
+    final newOrderRef = FirebaseDatabase.instance.ref('orders').push();
+    final now = DateTime.now();
+    await newOrderRef.set({
+      'id': newOrderRef.key,
+      'buyerId': 'test_buyer_1',
+      'sellerId': 'test_seller_1',
+      'buyerName': 'Test Buyer',
+      'sellerName': 'Test Seller',
+      'items': [
+        {'productName': 'Test Item', 'quantity': 1, 'totalPrice': 50.0},
+      ],
+      'totalAmount': 50.0,
+      'deliveryFee': 5.0,
+      'grandTotal': 55.0,
+      'status': 'delivered',
+      'escrowStatus': 'held',
+      'deliveryAddress': '123 Test St',
+      'createdAt': now.millisecondsSinceEpoch,
+      'hasDispute': true,
+      'disputeReason': 'Item not as described (Test)',
+      'buyerEvidence': ['Evidence A'],
+      'sellerResponse': 'This is a test response.',
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test Dispute Created! Refresh list if needed.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final isMobile = screenWidth < 600;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: kDebugMode
+          ? FloatingActionButton.extended(
+              onPressed: _createTestDispute,
+              label: const Text('Create Test Dispute'),
+              icon: const Icon(Icons.bug_report),
+              backgroundColor: AppColors.error,
+            )
+          : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenWidth = constraints.maxWidth;
+          final isMobile = screenWidth < 600;
 
-        return Padding(
-          padding: EdgeInsets.all(
-            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Order Management',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSizes.paddingSM),
-              Text(
-                'Track and manage all orders',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 12 : 14,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSizes.paddingLG),
-
-              // Search and Filter Row
-              Wrap(
-                spacing: AppSizes.paddingMD,
-                runSpacing: AppSizes.paddingMD,
-                children: [
-                  SizedBox(
-                    width: isMobile ? double.infinity : 300,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search orders...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusSM,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value.toLowerCase();
-                        });
-                      },
-                    ),
+          return Padding(
+            padding: EdgeInsets.all(
+              isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Text(
+                  'Order Management',
+                  style: GoogleFonts.inter(
+                    fontSize: isMobile ? 24 : 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  SizedBox(
-                    width: isMobile ? double.infinity : 200,
-                    child: DropdownButtonFormField<OrderStatus?>(
-                      value: _selectedStatus,
-                      decoration: InputDecoration(
-                        labelText: 'Filter by Status',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusSM,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('All Orders'),
-                        ),
-                        ...OrderStatus.values.map(
-                          (status) => DropdownMenuItem(
-                            value: status,
-                            child: Text(_getStatusText(status)),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedStatus = value;
-                        });
-                      },
-                    ),
+                ),
+                const SizedBox(height: AppSizes.paddingSM),
+                Text(
+                  'Track and manage all orders',
+                  style: GoogleFonts.inter(
+                    fontSize: isMobile ? 12 : 14,
+                    color: AppColors.textSecondary,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: AppSizes.paddingLG),
 
-              const SizedBox(height: AppSizes.paddingMD),
+                // Search and Filter Row
+                Wrap(
+                  spacing: AppSizes.paddingMD,
+                  runSpacing: AppSizes.paddingMD,
+                  children: [
+                    SizedBox(
+                      width: isMobile ? double.infinity : 300,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search orders...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusSM,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value.toLowerCase();
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: isMobile ? double.infinity : 200,
+                      child: DropdownButtonFormField<OrderStatus?>(
+                        value: _selectedStatus,
+                        decoration: InputDecoration(
+                          labelText: 'Filter by Status',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusSM,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('All Orders'),
+                          ),
+                          ...OrderStatus.values.map(
+                            (status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(_getStatusText(status)),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedStatus = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
 
-              // Orders Table/List
-              Expanded(child: _buildOrdersList(isMobile)),
-            ],
-          ),
-        );
-      },
+                const SizedBox(height: AppSizes.paddingMD),
+
+                // Orders Table/List
+                Expanded(child: _buildOrdersList(isMobile)),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

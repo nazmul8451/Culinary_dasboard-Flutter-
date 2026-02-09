@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'controllers/auth_controller.dart';
 import 'firebase_options.dart';
 import 'services/realtime_database_service.dart';
+import 'services/fcm_service.dart';
 import 'controllers/dashboard_controller.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/layout/dashboard_layout.dart';
@@ -14,6 +15,13 @@ void main() async {
 
   // Initialize Realtime Database
   await RealtimeDatabaseService.initialize();
+
+  // Initialize FCM Service
+  try {
+    await FcmService.initialize();
+  } catch (e) {
+    print("FCM Initialization Failed: $e");
+  }
 
   // Initialize GetX controllers
   Get.put(AuthController());

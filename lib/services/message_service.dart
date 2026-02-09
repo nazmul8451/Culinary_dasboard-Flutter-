@@ -2,6 +2,14 @@ import 'package:firebase_database/firebase_database.dart';
 import '../models/message_model.dart';
 import 'realtime_database_service.dart';
 import 'notification_service.dart';
+import 'moderation_service.dart';
+
+class SecurityException implements Exception {
+  final String message;
+  SecurityException(this.message);
+  @override
+  String toString() => message;
+}
 
 class MessageService {
   static final DatabaseReference _messagesRef = RealtimeDatabaseService.ref(
@@ -14,6 +22,17 @@ class MessageService {
   /// Send a direct message to a specific user
   static Future<void> sendMessage(MessageModel message) async {
     try {
+      // Validate content before sending
+      final validation = await _validateContent(
+        message.content,
+        message.senderId,
+        'Direct Message',
+      );
+
+      if (!validation.isValid) {
+        throw SecurityException(validation.error!);
+      }
+
       final newMessageRef = _messagesRef.push();
       await newMessageRef.set(message.toMap());
 
@@ -69,6 +88,17 @@ class MessageService {
   /// Send a broadcast message to a group of users
   static Future<void> sendBroadcast(MessageModel broadcast) async {
     try {
+      // Validate broadcast content
+      final validation = await _validateContent(
+        broadcast.content,
+        'admin',
+        'Broadcast towards ${broadcast.receiverId}',
+      );
+
+      if (!validation.isValid) {
+        throw SecurityException(validation.error!);
+      }
+
       final newBroadcastRef = _broadcastsRef.push();
       await newBroadcastRef.set(broadcast.toMap());
 
@@ -111,6 +141,41 @@ class MessageService {
       }
       broadcasts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return broadcasts;
+    }).asBroadcastStream();
+  }
+
+  /// Get a map of UserId -> LastMessageTimestamp for sorting
+  static Stream<Map<String, DateTime>> getLastMessageTimes() {
+    return _messagesRef.onValue.map((event) {
+      final Map<String, DateTime> lastTimes = {};
+      if (event.snapshot.value != null) {
+        final data = event.snapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          try {
+            final msg = MessageModel.fromMap(
+              key.toString(),
+              Map<dynamic, dynamic>.from(value),
+            );
+
+            String? otherUserId;
+            if (msg.senderId == 'admin') {
+              otherUserId = msg.receiverId;
+            } else if (msg.receiverId == 'admin') {
+              otherUserId = msg.senderId;
+            }
+
+            if (otherUserId != null) {
+              if (!lastTimes.containsKey(otherUserId) ||
+                  msg.timestamp.isAfter(lastTimes[otherUserId]!)) {
+                lastTimes[otherUserId] = msg.timestamp;
+              }
+            }
+          } catch (e) {
+            // ignore malformed messages
+          }
+        });
+      }
+      return lastTimes;
     }).asBroadcastStream();
   }
 
@@ -184,4 +249,59 @@ class MessageService {
     // Same as direct message but categorized by type
     await sendMessage(externalMsg);
   }
+
+  /// Validate content for sensitive information
+  static Future<ContentValidationResult> _validateContent(
+    String content,
+    String userId,
+    String context,
+  ) async {
+    // Regex patterns
+    final phoneRegex = RegExp(
+      r'\b[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}\b',
+    );
+    final emailRegex = RegExp(r'\b[\w\.-]+@[\w\.-]+\.\w{2,4}\b');
+    final urlRegex = RegExp(
+      r'(http|https):\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(\/\S*)?',
+    );
+
+    String? violationDetails;
+    ModerationLogType? violationType;
+
+    if (phoneRegex.hasMatch(content)) {
+      violationDetails = 'Phone number detected in message: $content';
+      violationType = ModerationLogType.contactSharing;
+    } else if (emailRegex.hasMatch(content)) {
+      violationDetails = 'Email detected in message: $content';
+      violationType = ModerationLogType.contactSharing;
+    } else if (urlRegex.hasMatch(content)) {
+      violationDetails = 'URL detected in message: $content';
+      violationType = ModerationLogType.contactSharing;
+    }
+
+    if (violationType != null) {
+      // Log the violation
+      await ModerationService.logViolation(
+        userId: userId,
+        userName:
+            'User ID: $userId', // ideally fetch name but ID is sufficient for log
+        type: violationType,
+        details: '$context: $violationDetails',
+      );
+
+      return ContentValidationResult(
+        isValid: false,
+        error: 'Message blocked: Sharing contact info is not allowed.',
+      );
+    }
+
+    return ContentValidationResult(isValid: true);
+  }
+}
+
+class ContentValidationResult {
+  final bool isValid;
+  final String? error;
+
+  ContentValidationResult({required this.isValid, this.error});
 }
