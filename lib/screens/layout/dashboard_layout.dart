@@ -253,6 +253,15 @@ class _DashboardLayoutState extends State<DashboardLayout> {
                     padding: EdgeInsets.symmetric(
                       horizontal: Responsive.isMobile(context) ? 12 : 20,
                     ),
+                    decoration: BoxDecoration(
+                      color: AppColors.drawerBackground,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.border.withOpacity(0.2),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
                     child: Row(
                       children: [
                         Container(

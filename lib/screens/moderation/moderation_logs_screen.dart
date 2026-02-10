@@ -9,119 +9,131 @@ class ModerationLogsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-        return Padding(
-          padding: EdgeInsets.all(
-            isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Moderation Logs',
-                style: GoogleFonts.inter(
-                  fontSize: isMobile ? 24 : 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(
+              isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+            ),
+            child: Text(
+              'Moderation Logs',
+              style: GoogleFonts.inter(
+                fontSize: isMobile ? 24 : 28,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
-              const SizedBox(height: AppSizes.paddingLG),
-              Expanded(
-                child: StreamBuilder<List<ModerationLog>>(
-                  stream: ModerationService.getAllLogs(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.security,
-                              size: 64,
-                              color: AppColors.textHint,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text('All clear! No moderation logs found.'),
-                          ],
+            ),
+          ),
+        ),
+        StreamBuilder<List<ModerationLog>>(
+          stream: ModerationService.getAllLogs(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.security, size: 64, color: AppColors.textHint),
+                      const SizedBox(height: 16),
+                      const Text('All clear! No moderation logs found.'),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final logs = snapshot.data!;
+            return SliverPadding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? AppSizes.paddingMD : AppSizes.paddingLG,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final log = logs[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppSizes.paddingMD),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMD),
+                      border: Border.all(
+                        color: AppColors.border.withOpacity(0.5),
+                        width: 0.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cardShadow,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      );
-                    }
-
-                    final logs = snapshot.data!;
-                    return ListView.builder(
-                      itemCount: logs.length,
-                      itemBuilder: (context, index) {
-                        final log = logs[index];
-                        return Container(
-                          margin: const EdgeInsets.only(
-                            bottom: AppSizes.paddingMD,
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: _buildLogIcon(log.type),
+                      title: Text(
+                        log.userName,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            log.details,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusMD,
+                          const SizedBox(height: 4),
+                          Text(
+                            '${log.timestamp.toString().split('.')[0]} • ${log.type.name.toUpperCase()}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
-                            border: Border.all(
-                              color: AppColors.border.withOpacity(0.5),
-                              width: 0.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.cardShadow,
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      trailing: !isMobile && log.relatedOrderId != null
+                          ? Chip(
+                              label: Text(
+                                'Order: ${log.relatedOrderId!.substring(0, 5)}...',
+                                style: const TextStyle(fontSize: 10),
                               ),
-                            ],
-                          ),
-                          child: ListTile(
-                            leading: _buildLogIcon(log.type),
-                            title: Text(
-                              log.userName,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
                               ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  log.details,
-                                  style: GoogleFonts.inter(fontSize: 13),
-                                ),
-                                Text(
-                                  '${log.timestamp.toString().split('.')[0]} ${log.type.name.toUpperCase()}',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: !isMobile && log.relatedOrderId != null
-                                ? Chip(
-                                    label: Text(
-                                      'Order: ${log.relatedOrderId!.substring(0, 5)}...',
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                              side: BorderSide.none,
+                            )
+                          : null,
+                    ),
+                  );
+                }, childCount: logs.length),
               ),
-            ],
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 

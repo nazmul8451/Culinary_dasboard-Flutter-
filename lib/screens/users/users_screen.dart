@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import 'package:data_table_2/data_table_2.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
@@ -8,8 +9,10 @@ import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
 import '../../core/utils/animations.dart';
 import '../../services/fcm_service.dart';
+import '../../controllers/dashboard_controller.dart';
 
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/keep_alive_wrapper.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -29,7 +32,12 @@ class _UsersScreenState extends State<UsersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    final dashboardController = Get.find<DashboardController>();
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: dashboardController.usersTabIndex,
+    );
   }
 
   @override
@@ -117,11 +125,13 @@ class _UsersScreenState extends State<UsersScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildUserTable(null),
-                _buildUserTable(null, onlyPending: true),
-                _buildUserTable(UserType.buyer),
-                _buildUserTable(UserType.seller),
-                _buildUserTable(UserType.courier),
+                KeepAliveWrapper(child: _buildUserTable(null)),
+                KeepAliveWrapper(
+                  child: _buildUserTable(null, onlyPending: true),
+                ),
+                KeepAliveWrapper(child: _buildUserTable(UserType.buyer)),
+                KeepAliveWrapper(child: _buildUserTable(UserType.seller)),
+                KeepAliveWrapper(child: _buildUserTable(UserType.courier)),
               ],
             ).animateFadeInUp(delay: 200),
           ),

@@ -8,6 +8,7 @@ import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../widgets/chat_dialog.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/keep_alive_wrapper.dart';
 
 class CommunicationsScreen extends StatefulWidget {
   const CommunicationsScreen({super.key});
@@ -180,9 +181,9 @@ class _CommunicationsScreenState extends State<CommunicationsScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildBroadcastTab(isMobile),
-                    _buildChatsTab(isMobile),
-                    _buildNotificationsTab(isMobile),
+                    KeepAliveWrapper(child: _buildBroadcastTab(isMobile)),
+                    KeepAliveWrapper(child: _buildChatsTab(isMobile)),
+                    KeepAliveWrapper(child: _buildNotificationsTab(isMobile)),
                   ],
                 ),
               ),

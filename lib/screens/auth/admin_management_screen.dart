@@ -95,28 +95,56 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Admin Management',
-                    style: GoogleFonts.inter(
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Admin Management',
+                          style: GoogleFonts.inter(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.paddingMD),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _showAddAdminDialog,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Admin'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Admin Management',
+                          style: GoogleFonts.inter(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _showAddAdminDialog,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Admin'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _showAddAdminDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Admin'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: AppSizes.paddingLG),
               Expanded(
                 child: StreamBuilder(

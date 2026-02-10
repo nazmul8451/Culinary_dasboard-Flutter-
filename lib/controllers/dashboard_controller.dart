@@ -8,6 +8,9 @@ class DashboardController extends GetxController {
   final _selectedRoute = '/dashboard'.obs;
   String get selectedRoute => _selectedRoute.value;
 
+  final _usersTabIndex = 0.obs;
+  int get usersTabIndex => _usersTabIndex.value;
+
   StreamSubscription? _ticketSubscription;
   bool _isFirstLoad = true;
 
@@ -56,7 +59,12 @@ class DashboardController extends GetxController {
     });
   }
 
-  void changeRoute(String route) {
+  void changeRoute(String route, {int? usersTabIndex}) {
     _selectedRoute.value = route;
+    if (usersTabIndex != null) {
+      _usersTabIndex.value = usersTabIndex;
+    } else {
+      _usersTabIndex.value = 0; // Reset to default
+    }
   }
 }

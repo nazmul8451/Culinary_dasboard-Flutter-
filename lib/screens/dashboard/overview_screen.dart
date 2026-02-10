@@ -394,7 +394,12 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Get.find<DashboardController>().changeRoute(
+                      '/users',
+                      usersTabIndex: 1, // Verification tab
+                    );
+                  },
                   child: Text(
                     'View All',
                     style: GoogleFonts.inter(

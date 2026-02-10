@@ -47,151 +47,371 @@ class OrderDetailsDialog extends StatelessWidget {
         final sellerName = snapshot.data?['sellerName'];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
 
-        return AlertDialog(
-          title: Text('Order Details', style: GoogleFonts.inter()),
-          content: SingleChildScrollView(
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow('Order ID', order.id),
-                _buildDetailRow(
-                  'Customer',
-                  isLoading
-                      ? ShimmerLoading.rounded(height: 15, width: 150)
-                      : '$buyerName (${order.buyerId.length > 8 ? order.buyerId.substring(0, 8) : order.buyerId})',
-                ),
-                _buildDetailRow(
-                  'Seller',
-                  isLoading
-                      ? ShimmerLoading.rounded(height: 15, width: 150)
-                      : '$sellerName (${order.sellerId.length > 8 ? order.sellerId.substring(0, 8) : order.sellerId})',
-                ),
-                if (order.courierName != null)
-                  _buildDetailRow(
-                    'Courier',
-                    '${order.courierName} (${order.courierId?.length != null && order.courierId!.length > 8 ? order.courierId!.substring(0, 8) : order.courierId ?? ''})',
+                // Modern Header with Gradient
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
                   ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.receipt_long,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Order Details',
+                              style: GoogleFonts.inter(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '#${order.id.substring(0, 12)}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(order.status),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _getStatusText(order.status),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-                // Product Items Section
-                if (order.items.isNotEmpty) ...[
-                  const Divider(),
-                  Text(
-                    'ORDERED ITEMS',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...order.items.map((item) => _buildItemRow(item)),
-                  const Divider(),
-                ],
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Participants Section
+                        _buildSection('Participants', Icons.people_outline, [
+                          _buildModernDetailRow(
+                            Icons.person,
+                            'Customer',
+                            isLoading
+                                ? ShimmerLoading.rounded(height: 15, width: 150)
+                                : buyerName ?? 'Unknown',
+                            AppColors.primary,
+                          ),
+                          _buildModernDetailRow(
+                            Icons.store,
+                            'Seller',
+                            isLoading
+                                ? ShimmerLoading.rounded(height: 15, width: 150)
+                                : sellerName ?? 'Unknown',
+                            AppColors.secondary,
+                          ),
+                          if (order.courierName != null)
+                            _buildModernDetailRow(
+                              Icons.delivery_dining,
+                              'Courier',
+                              order.courierName!,
+                              AppColors.warning,
+                            ),
+                        ]),
 
-                _buildDetailRow(
-                  'Subtotal',
-                  '\$${displayTotal.toStringAsFixed(2)}',
-                ),
-                _buildDetailRow(
-                  'Delivery Fee',
-                  '\$${order.deliveryFee.toStringAsFixed(2)}',
-                ),
-                _buildDetailRow(
-                  'Grand Total',
-                  '\$${order.grandTotal.toStringAsFixed(2)}',
-                  isBold: true,
-                ),
-                const SizedBox(height: 8),
-                _buildDetailRow('Status', _getStatusText(order.status)),
-                _buildDetailRow(
-                  'Escrow',
-                  order.escrowStatus.name.toUpperCase(),
-                ),
-                _buildDetailRow('Address', order.deliveryAddress),
-                _buildDetailRow('Date', _formatDate(order.createdAt)),
-                if (order.trackingNumber != null) ...[
-                  _buildDetailRow('Tracking #', order.trackingNumber!),
-                  _buildDetailRow(
-                    'Provider',
-                    order.trackingProvider ?? 'Unknown',
-                  ),
-                ],
-                if (order.notes != null) _buildDetailRow('Notes', order.notes!),
-                if (order.hasDispute) ...[
-                  const Divider(),
-                  Text(
-                    'DISPUTE INFORMATION',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.error,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Reason', order.disputeReason ?? 'N/A'),
-                  if (order.sellerResponse != null)
-                    _buildDetailRow('Seller Response', order.sellerResponse!),
-                  if (order.buyerEvidence.isNotEmpty)
-                    _buildEvidenceRow(
-                      context,
-                      'Buyer Evidence',
-                      order.buyerEvidence,
-                    ),
-                  if (order.sellerEvidence.isNotEmpty)
-                    _buildEvidenceRow(
-                      context,
-                      'Seller Evidence',
-                      order.sellerEvidence,
-                    ),
-                ],
+                        const SizedBox(height: 20),
 
-                // Order History Timeline
-                const Divider(),
-                Text(
-                  'ORDER TIMELINE',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.primary,
+                        // Order Items Section
+                        if (order.items.isNotEmpty) ...[
+                          _buildSection(
+                            'Order Items',
+                            Icons.shopping_bag_outlined,
+                            order.items
+                                .map((item) => _buildModernItemRow(item))
+                                .toList(),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+
+                        // Payment Summary
+                        _buildSection('Payment Summary', Icons.payment, [
+                          _buildPricingRow('Subtotal', displayTotal, false),
+                          _buildPricingRow(
+                            'Delivery Fee',
+                            order.deliveryFee,
+                            false,
+                          ),
+                          const Divider(height: 16),
+                          _buildPricingRow(
+                            'Grand Total',
+                            order.grandTotal,
+                            true,
+                          ),
+                        ]),
+
+                        const SizedBox(height: 20),
+
+                        // Delivery Information
+                        _buildSection(
+                          'Delivery Information',
+                          Icons.local_shipping_outlined,
+                          [
+                            _buildInfoTile(
+                              Icons.location_on_outlined,
+                              'Address',
+                              order.deliveryAddress,
+                            ),
+                            _buildInfoTile(
+                              Icons.calendar_today,
+                              'Order Date',
+                              _formatDate(order.createdAt),
+                            ),
+                            if (order.trackingNumber != null)
+                              _buildInfoTile(
+                                Icons.qr_code,
+                                'Tracking',
+                                '${order.trackingNumber} (${order.trackingProvider ?? 'N/A'})',
+                              ),
+                            _buildInfoTile(
+                              Icons.account_balance_wallet,
+                              'Escrow Status',
+                              order.escrowStatus.name.toUpperCase(),
+                            ),
+                          ],
+                        ),
+
+                        if (order.notes != null) ...[
+                          const SizedBox(height: 20),
+                          _buildSection('Notes', Icons.note_outlined, [
+                            Text(
+                              order.notes!,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ]),
+                        ],
+
+                        // Dispute Section
+                        if (order.hasDispute) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.error.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.warning_rounded,
+                                      color: AppColors.error,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'DISPUTE ACTIVE',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.error,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _buildDetailRow(
+                                  'Reason',
+                                  order.disputeReason ?? 'N/A',
+                                ),
+                                if (order.sellerResponse != null)
+                                  _buildDetailRow(
+                                    'Seller Response',
+                                    order.sellerResponse!,
+                                  ),
+                                if (order.buyerEvidence.isNotEmpty)
+                                  _buildEvidenceRow(
+                                    context,
+                                    'Buyer Evidence',
+                                    order.buyerEvidence,
+                                  ),
+                                if (order.sellerEvidence.isNotEmpty)
+                                  _buildEvidenceRow(
+                                    context,
+                                    'Seller Evidence',
+                                    order.sellerEvidence,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        // Timeline
+                        const SizedBox(height: 20),
+                        _buildSection(
+                          'Order Timeline',
+                          Icons.timeline,
+                          order.history.isEmpty
+                              ? [
+                                  Text(
+                                    'No tracking events recorded.',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ]
+                              : order.history
+                                    .map((h) => _buildTimelineItem(h))
+                                    .toList(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (order.history.isEmpty)
-                  const Text('No tracking events recorded.')
-                else
-                  ...order.history.map((h) => _buildTimelineItem(h)),
+
+                // Actions Footer
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Delete Order Button
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _confirmDeleteOrder(context);
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Delete',
+                          style: GoogleFonts.inter(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (order.hasDispute)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showResolveDisputeDialog(context);
+                          },
+                          icon: const Icon(Icons.gavel, size: 18),
+                          label: const Text('Resolve Dispute'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      if (order.escrowStatus == EscrowStatus.held &&
+                          !order.hasDispute)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _confirmReleaseEscrow(context);
+                          },
+                          icon: const Icon(Icons.check_circle, size: 18),
+                          label: const Text('Release Escrow'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          'Close',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          actions: [
-            if (order.hasDispute)
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showResolveDisputeDialog(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                ),
-                child: const Text('Resolve Dispute'),
-              ),
-            if (order.escrowStatus == EscrowStatus.held && !order.hasDispute)
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _confirmReleaseEscrow(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                ),
-                child: const Text('Release Escrow'),
-              ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
         );
       },
     );
@@ -229,23 +449,207 @@ class OrderDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildItemRow(OrderItem item) {
+  // Modern Section Builder
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  // Modern Detail Row with Icon
+  Widget _buildModernDetailRow(
+    IconData icon,
+    String label,
+    dynamic value,
+    Color iconColor,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              '${item.productName} (×${item.quantity})',
-              style: GoogleFonts.inter(fontSize: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                value is Widget
+                    ? value
+                    : Text(
+                        value.toString(),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Modern Item Row
+  Widget _buildModernItemRow(OrderItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.fastfood,
+              size: 16,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.productName,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'Quantity: ${item.quantity}',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           Text(
             '\$${item.totalPrice.toStringAsFixed(2)}',
             style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Pricing Row
+  Widget _buildPricingRow(String label, double amount, bool isBold) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: isBold ? 15 : 13,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            '\$${amount.toStringAsFixed(2)}',
+            style: GoogleFonts.inter(
+              fontSize: isBold ? 16 : 14,
+              fontWeight: FontWeight.bold,
+              color: isBold ? AppColors.primary : AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Info Tile
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -375,6 +779,89 @@ class OrderDetailsDialog extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             child: const Text('Confirm Release'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteOrder(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Order',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Are you sure you want to delete this order? This action cannot be undone.',
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning, color: AppColors.error, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Order ID: ${order.id}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await OrderService.deleteOrder(order.id);
+                Navigator.pop(context); // Close confirmation dialog
+                onUpdate?.call(); // Refresh the list
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Order deleted successfully',
+                      style: GoogleFonts.inter(),
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to delete order: $e',
+                      style: GoogleFonts.inter(),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete Order'),
           ),
         ],
       ),

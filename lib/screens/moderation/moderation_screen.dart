@@ -6,6 +6,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../models/message_model.dart';
 import '../../services/message_service.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/keep_alive_wrapper.dart';
 
 class ModerationScreen extends StatefulWidget {
   const ModerationScreen({super.key});
@@ -93,8 +94,10 @@ class _ModerationScreenState extends State<ModerationScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildProductApprovals(isMobile, screenWidth),
-                    _buildReportedContent(isMobile),
+                    KeepAliveWrapper(
+                      child: _buildProductApprovals(isMobile, screenWidth),
+                    ),
+                    KeepAliveWrapper(child: _buildReportedContent(isMobile)),
                   ],
                 ),
               ),

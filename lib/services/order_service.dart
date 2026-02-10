@@ -408,4 +408,13 @@ class OrderService {
     if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
     return DateTime.now();
   }
+
+  /// Delete an order (Admin only)
+  static Future<void> deleteOrder(String orderId) async {
+    try {
+      await RealtimeDatabaseService.ref('orders/$orderId').remove();
+    } catch (e) {
+      throw Exception('Failed to delete order: $e');
+    }
+  }
 }
