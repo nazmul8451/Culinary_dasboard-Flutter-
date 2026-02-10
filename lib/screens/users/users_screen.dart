@@ -653,58 +653,175 @@ class _UsersScreenState extends State<UsersScreen>
   void _showUserActions(UserModel user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('User Actions', style: GoogleFonts.inter()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('View Details'),
-              onTap: () {
-                Navigator.pop(context);
-                _showUserDetails(user);
-              },
-            ),
-            if (user.status == UserStatus.active)
-              ListTile(
-                leading: const Icon(Icons.block, color: AppColors.error),
-                title: const Text('Ban User'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _banUser(user);
-                },
-              )
-            else
-              ListTile(
-                leading: const Icon(
-                  Icons.check_circle,
-                  color: AppColors.success,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gradient Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
                 ),
-                title: const Text('Activate User'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _activateUser(user);
-                },
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.settings,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'User Actions',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ListTile(
-              leading: const Icon(Icons.message, color: AppColors.primary),
-              title: const Text('Send Message'),
-              onTap: () {
-                Navigator.pop(context);
-                _openChat(user);
-              },
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildActionTile(
+                      icon: Icons.info_outline,
+                      title: 'View Details',
+                      iconColor: AppColors.info,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showUserDetails(user);
+                      },
+                    ),
+                    if (user.status == UserStatus.active)
+                      _buildActionTile(
+                        icon: Icons.block,
+                        title: 'Ban User',
+                        iconColor: AppColors.error,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _banUser(user);
+                        },
+                      )
+                    else
+                      _buildActionTile(
+                        icon: Icons.check_circle_outline,
+                        title: 'Activate User',
+                        iconColor: AppColors.success,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _activateUser(user);
+                        },
+                      ),
+                    _buildActionTile(
+                      icon: Icons.notifications_none,
+                      title: 'Send Notification',
+                      iconColor: AppColors.warning,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showPushNotificationDialog(user);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Close',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.notifications_active,
-                color: AppColors.primary,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              title: const Text('Send Push Notification'),
-              onTap: () {
-                Navigator.pop(context);
-                _showPushNotificationDialog(user);
-              },
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: AppColors.textSecondary,
             ),
           ],
         ),
@@ -715,158 +832,329 @@ class _UsersScreenState extends State<UsersScreen>
   void _showUserDetails(UserModel user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('User Details', style: GoogleFonts.inter()),
-        content: SizedBox(
-          width: 400,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: _getUserTypeColor(
-                    user.userType,
-                  ).withOpacity(0.1),
-                  backgroundImage:
-                      user.profileImage != null && user.profileImage!.isNotEmpty
-                      ? NetworkImage(user.profileImage!)
-                      : null,
-                  child:
-                      user.profileImage != null && user.profileImage!.isNotEmpty
-                      ? null
-                      : Icon(
-                          _getUserTypeIcon(user.userType),
-                          size: 40,
-                          color: _getUserTypeColor(user.userType),
-                        ),
+              // Gradient Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _getUserTypeColor(user.userType),
+                      _getUserTypeColor(user.userType).withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSizes.paddingLG),
-              _buildDetailItem('Name', user.name),
-              _buildDetailItem('Email', user.email),
-              _buildDetailItem('User Type', user.userType.name.toUpperCase()),
-              _buildDetailItem('Status', user.status.name.toUpperCase()),
-              if (user.phone != null) _buildDetailItem('Phone', user.phone!),
-              _buildDetailItem(
-                'Joined',
-                user.createdAt.toString().split('.')[0],
-              ),
-              const Divider(),
-              Text(
-                'Verification Status:',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              _buildVerificationRow(
-                'Overall',
-                user.verificationStatus ?? VerificationStatus.pending,
-              ),
-              _buildVerificationRow(
-                'ID Document',
-                user.idVerificationStatus ?? VerificationStatus.pending,
-              ),
-              _buildVerificationRow(
-                'Facial Check',
-                user.facialVerificationStatus ?? VerificationStatus.pending,
-              ),
-              if (user.userType == UserType.seller &&
-                  user.trialStartDate != null) ...[
-                const Divider(),
-                Text(
-                  'Trial Period:',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                ),
-                _buildDetailItem(
-                  'Trial Started',
-                  user.trialStartDate!.toString().split('.')[0],
-                ),
-                _buildTrialProgress(user.trialStartDate!),
-              ],
-              if (user.userType == UserType.seller) ...[
-                const Divider(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Row(
                   children: [
-                    Text(
-                      'Shipping Rules:',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.white,
+                        backgroundImage:
+                            user.profileImage != null &&
+                                user.profileImage!.isNotEmpty
+                            ? NetworkImage(user.profileImage!)
+                            : null,
+                        child:
+                            user.profileImage != null &&
+                                user.profileImage!.isNotEmpty
+                            ? null
+                            : Icon(
+                                _getUserTypeIcon(user.userType),
+                                size: 24,
+                                color: _getUserTypeColor(user.userType),
+                              ),
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showManageShippingRules(user);
-                      },
-                      icon: const Icon(Icons.edit, size: 16),
-                      label: const Text('Manage'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: GoogleFonts.inter(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.userType.name.toUpperCase(),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.9),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.white),
                     ),
                   ],
                 ),
-                _buildDetailItem('Base Cost/Kg', '\$${user.costPerKg ?? 0.0}'),
-                _buildDetailItem('Min Fee', '\$${user.minShippingFee ?? 0.0}'),
-                if (user.shippingRules != null &&
-                    user.shippingRules!.isNotEmpty)
-                  Text(
-                    '${user.shippingRules!.length} country rules defined',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      fontStyle: FontStyle.italic,
-                    ),
+              ),
+
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader('Contact Information'),
+                      _buildInfoTile(Icons.email_outlined, 'Email', user.email),
+                      if (user.phone != null)
+                        _buildInfoTile(
+                          Icons.phone_outlined,
+                          'Phone',
+                          user.phone!,
+                        ),
+                      _buildInfoTile(
+                        Icons.calendar_today_outlined,
+                        'Joined',
+                        user.createdAt.toString().split('.')[0],
+                      ),
+
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Account Status'),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: user.status == UserStatus.active
+                              ? AppColors.success.withOpacity(0.1)
+                              : AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: user.status == UserStatus.active
+                                ? AppColors.success.withOpacity(0.3)
+                                : AppColors.error.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              user.status == UserStatus.active
+                                  ? Icons.check_circle
+                                  : Icons.block,
+                              size: 16,
+                              color: user.status == UserStatus.active
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              user.status.name.toUpperCase(),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                color: user.status == UserStatus.active
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Verification Status'),
+                      const SizedBox(height: 8),
+                      _buildVerificationRow(
+                        'Overall',
+                        user.verificationStatus ?? VerificationStatus.pending,
+                      ),
+                      _buildVerificationRow(
+                        'ID Document',
+                        user.idVerificationStatus ?? VerificationStatus.pending,
+                      ),
+                      _buildVerificationRow(
+                        'Facial Check',
+                        user.facialVerificationStatus ??
+                            VerificationStatus.pending,
+                      ),
+
+                      if (user.userType == UserType.seller &&
+                          user.trialStartDate != null) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionHeader('Trial Period'),
+                        _buildInfoTile(
+                          Icons.timer_outlined,
+                          'Trial Started',
+                          user.trialStartDate!.toString().split('.')[0],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTrialProgress(user.trialStartDate!),
+                      ],
+
+                      if (user.userType == UserType.seller) ...[
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Shipping Rules',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showManageShippingRules(user);
+                              },
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text('Manage'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
-              ],
-              if (user.metadata != null) ...[
-                const Divider(),
-                Text(
-                  'Metadata:',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                 ),
-                ...user.metadata!.entries.map(
-                  (e) => _buildDetailItem(e.key, e.value.toString()),
+              ),
+              // Footer Actions
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
                 ),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (user.verificationStatus ==
+                        VerificationStatus.pending) ...[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _rejectUser(user);
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                        ),
+                        child: const Text('Reject'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _approveUser(user);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                        ),
+                        child: const Text('Approve'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _openChat(user);
+                        },
+                        icon: const Icon(Icons.message, size: 16),
+                        label: const Text('Message'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.primary),
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          if (user.verificationStatus == VerificationStatus.pending) ...[
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _rejectUser(user);
-              },
-              style: TextButton.styleFrom(foregroundColor: AppColors.error),
-              child: const Text('Reject'),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _approveUser(user);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Approve'),
-            ),
-            const SizedBox(width: AppSizes.paddingSM),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                _openChat(user);
-              },
-              icon: const Icon(Icons.message, size: 16),
-              label: const Text('Message'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
           ),
         ],
       ),
@@ -888,88 +1176,172 @@ class _UsersScreenState extends State<UsersScreen>
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            'Send Push Notification to ${user.name}',
-            style: GoogleFonts.inter(),
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Notification Title',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: AppSizes.paddingMD),
-              TextField(
-                controller: bodyController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Notification Body',
-                  hintText: 'Enter message content...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      if (bodyController.text.isEmpty) return;
-                      setDialogState(() => isLoading = true);
-                      try {
-                        await FcmService.sendNotificationToUser(
-                          userId: user.id,
-                          title: titleController.text,
-                          body: bodyController.text,
-                          type: 'admin_direct',
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Notification triggered successfully',
-                              ),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        setDialogState(() => isLoading = false);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to send notification: $e'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Gradient Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary,
+                        AppColors.primary.withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_active,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                    )
-                  : const Text('Send'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Send Notification',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Notification Title',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.title),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: bodyController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Message',
+                          hintText: 'Enter message content...',
+                          border: OutlineInputBorder(),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Footer
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (bodyController.text.isEmpty) return;
+                                setDialogState(() => isLoading = true);
+                                try {
+                                  await FcmService.sendNotificationToUser(
+                                    userId: user.id,
+                                    title: titleController.text,
+                                    body: bodyController.text,
+                                    type: 'admin_direct',
+                                  );
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Notification sent successfully',
+                                        ),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  setDialogState(() => isLoading = false);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to send: $e'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        icon: isLoading
+                            ? Container(
+                                width: 16,
+                                height: 16,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send, size: 18),
+                        label: Text(isLoading ? 'Sending...' : 'Send Now'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -985,87 +1357,165 @@ class _UsersScreenState extends State<UsersScreen>
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Manage Shipping: ${user.name}',
-          style: GoogleFonts.inter(),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: costController,
-              decoration: const InputDecoration(
-                labelText: 'Shipping Cost Per Kg (\$)',
-                prefixText: '\$ ',
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gradient Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.info, AppColors.info.withOpacity(0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.local_shipping,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Shipping Rules',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: AppSizes.paddingMD),
-            TextField(
-              controller: minFeeController,
-              decoration: const InputDecoration(
-                labelText: 'Minimum Shipping Fee (\$)',
-                prefixText: '\$ ',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: AppSizes.paddingMD),
-            const Text(
-              'Per-country rules and validation logic are preserved in metadata. Direct editing of map rules will be available in the next update.',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final cost = double.tryParse(costController.text);
-              final minFee = double.tryParse(minFeeController.text);
-              if (cost != null && minFee != null) {
-                await UserService.updateShippingRules(
-                  user.id,
-                  costPerKg: cost,
-                  minShippingFee: minFee,
-                );
-                Navigator.pop(context);
-                _showSnackBar('Shipping rules updated', AppColors.success);
-              }
-            },
-            child: const Text('Save Rules'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildDetailItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.paddingSM),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: costController,
+                      decoration: const InputDecoration(
+                        labelText: 'Shipping Cost Per Kg',
+                        prefixText: '\$ ',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: minFeeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Minimum Shipping Fee',
+                        prefixText: '\$ ',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.remove_circle_outline),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.warning.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: AppColors.warning,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Direct editing of map rules will be available in the next update.',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final cost = double.tryParse(costController.text);
+                        final minFee = double.tryParse(minFeeController.text);
+                        if (cost != null && minFee != null) {
+                          await UserService.updateShippingRules(
+                            user.id,
+                            costPerKg: cost,
+                            minShippingFee: minFee,
+                          );
+                          Navigator.pop(context);
+                          _showSnackBar(
+                            'Shipping rules updated',
+                            AppColors.success,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.info,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Save Changes'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.inter(color: AppColors.textPrimary),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1156,27 +1606,116 @@ class _UsersScreenState extends State<UsersScreen>
     final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reject Verification'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(
-            hintText: 'Enter rejection reason...',
-            border: OutlineInputBorder(),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Gradient Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Reject Verification',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Please provide a reason for rejecting this user\'s verification. This will be sent to the user.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: reasonController,
+                      decoration: const InputDecoration(
+                        labelText: 'Rejection Reason',
+                        hintText: 'e.g. ID document is blurry',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 4,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Confirm Rejection'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          maxLines: 3,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
     );
 
