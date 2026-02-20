@@ -1000,6 +1000,143 @@ class _UsersScreenState extends State<UsersScreen>
                             VerificationStatus.pending,
                       ),
 
+                      if (user.metadata != null &&
+                          (user.metadata!.containsKey('nidUrl') ||
+                              user.metadata!.containsKey('idDocumentUrl') ||
+                              user.metadata!.containsKey('documentUrl'))) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionHeader('ID Document'),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            final url =
+                                user.metadata!['nidUrl'] ??
+                                user.metadata!['idDocumentUrl'] ??
+                                user.metadata!['documentUrl'];
+                            if (url != null) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      InteractiveViewer(
+                                        child: Image.network(url),
+                                      ),
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            height: 200,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.border.withOpacity(0.5),
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                user.metadata!['nidUrl'] ??
+                                    user.metadata!['idDocumentUrl'] ??
+                                    user.metadata!['documentUrl'],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.broken_image_outlined,
+                                          size: 40,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Failed to load image',
+                                          style: GoogleFonts.inter(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      );
+                                    },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else if (user.verificationStatus ==
+                          VerificationStatus.pending) ...[
+                        const SizedBox(height: 24),
+                        _buildSectionHeader('ID Document'),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.warning.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: AppColors.warning,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'No document uploaded',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       if (user.userType == UserType.seller &&
                           user.trialStartDate != null) ...[
                         const SizedBox(height: 24),
@@ -1592,10 +1729,19 @@ class _UsersScreenState extends State<UsersScreen>
 
   Future<void> _approveUser(UserModel user) async {
     try {
+      // Approve main verification status
       await UserService.updateVerificationStatus(
         user.id,
         VerificationStatus.verified,
       );
+
+      // Approve detailed statuses as well for consistency
+      await UserService.updateDetailedVerification(
+        user.id,
+        idStatus: VerificationStatus.verified,
+        facialStatus: VerificationStatus.verified,
+      );
+
       _showSnackBar('User approved successfully', AppColors.success);
     } catch (e) {
       _showSnackBar('Failed to approve user', AppColors.error);

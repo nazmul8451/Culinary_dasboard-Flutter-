@@ -16,7 +16,7 @@ class AuthController extends GetxController {
   StreamSubscription? _adminListener;
 
   // Super admin email that bypasses database whitelist
-  static const String _superAdminEmail = 'rimon683509@gmail.com';
+  static const String _superAdminEmail = 'rimon124567@gmail.com';
 
   @override
   void onInit() {
